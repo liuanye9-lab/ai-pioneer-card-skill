@@ -10,6 +10,7 @@ import type {
 } from "../core/types.js";
 import { makeId, stableHash } from "../core/errors.js";
 import { normalizeDateToken, normalizeDatesInText } from "../normalize/date-normalizer.js";
+import { upgradeBracketLabels } from "../normalize/emoji-preserver.js";
 
 /**
  * Fact Parser (PRD §9.1, SPEC §4). Extracts a Source of Truth from raw copy.
@@ -56,10 +57,21 @@ function splitSentences(copy: string): string[] {
     .filter((s) => s.length > 0);
 }
 
-function detectActivityName(copy: string): string | undefined {
+function detectActivityName(copy: string, brandName?: string): string | undefined {
   for (const pattern of ACTIVITY_NAME_PATTERNS) {
-    const m = copy.match(pattern);
-    if (m && m[1]) return m[1];
+    const m = pattern.exec(copy);
+    if (m && m[1]) {
+      let name = m[1];
+      // A brand name immediately preceding the match is part of the official
+      // activity name: 象上汇先锋大赛 ≠ 先锋大赛. Never truncate the prefix.
+      if (brandName && m.index >= brandName.length && !name.includes(brandName)) {
+        const prefixStart = m.index - brandName.length;
+        if (copy.slice(prefixStart, m.index) === brandName) {
+          name = brandName + name;
+        }
+      }
+      return name;
+    }
   }
   return undefined;
 }
@@ -275,11 +287,13 @@ function extractByHints(sentences: string[], hints: string[], locked: boolean): 
 
 export function parseSourceOfTruth(input: RawInput): SourceOfTruth {
   // Fold full-width digits/colon up front so 全角日期(８月９日)/时间(１５：００)
-  // are extracted & normalized like their half-width forms (D6).
-  const copy = foldFullWidth(input.copy);
+  // are extracted & normalized like their half-width forms (D6). Bracketed
+  // emoji labels ([喇叭]/【喇叭】) upgrade to real emoji at the source so every
+  // downstream fact (incl. locked rewards) carries 📣, never "[喇叭]".
+  const copy = upgradeBracketLabels(foldFullWidth(input.copy));
   const sentences = splitSentences(copy);
 
-  const activity_name = detectActivityName(copy);
+  const activity_name = detectActivityName(copy, input.brandName);
   const dates = extractDates(copy);
   const times = extractTimes(copy);
   const links = extractLinks(copy, input.knownLinks);

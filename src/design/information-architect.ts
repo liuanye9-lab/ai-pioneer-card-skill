@@ -11,6 +11,7 @@ import type {
 import { makeId } from "../core/errors.js";
 import { EMOJI_ANCHORS } from "../core/constants.js";
 import { assembleDedupedBody } from "./body-assembler.js";
+import { normalizeDatesInText } from "../normalize/date-normalizer.js";
 
 /**
  * Information Architect (PRD §9.8, DESIGN §18-22, SKILL §16-20).
@@ -200,6 +201,26 @@ export function buildInformationArchitecture(input: IAInput): CardStructure {
         2,
         { emoji: EMOJI_ANCHORS.date, text: parts.join(" · ") },
         [...sot.dates.map((d) => d.id), ...sot.times.map((t) => t.id)],
+      ),
+    );
+  }
+
+  // Guarantee rewards survive natively (D1): an intent branch that does not
+  // render rewards (e.g. submission) must still carry them — QA hard-fails
+  // otherwise, so emit them here rather than failing the card.
+  const rewardTexts = sot.rewards
+    .map((r) => normalizeDatesInText(r.value).text)
+    .filter((v) => !represented.includes(v));
+  const unrewarded = rewardTexts.filter(
+    (v) => !body.some((b) => (b.content?.text ?? "").includes(v)),
+  );
+  if (unrewarded.length) {
+    body.push(
+      block(
+        "note",
+        2,
+        { emoji: EMOJI_ANCHORS.reward, text: unrewarded.slice(0, 2).join(" / ") },
+        sot.rewards.map((r) => r.id),
       ),
     );
   }

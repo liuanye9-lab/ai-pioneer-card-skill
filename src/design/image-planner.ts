@@ -25,24 +25,36 @@ export interface ImagePlanInput {
   imageIntent: ImageIntentResult;
   renderMode: RenderModeResult;
   style: StyleProfile;
+  /** Raw copy, so module topics come from the sentence a fact lives in. */
+  rawCopy: string;
+}
+
+/** Split into sentences the same way the fact parser does. */
+function splitSentences(copy: string): string[] {
+  return copy
+    .split(/[\n。！？；;!?]+|，(?=[^\d])/g)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }
 
 /** Build modules from the source of truth (series / sessions / scenes). */
-function deriveModules(sot: SourceOfTruth, rawSentences: string[]): ImageModule[] {
+function deriveModules(sot: SourceOfTruth, contextSentences: string[]): ImageModule[] {
   const modules: ImageModule[] = [];
 
-  // Training sessions: pair times with nearby topic words.
+  // Training sessions: pair times with the topic words of the sentence the
+  // time actually occurs in. A bare time with no topic produces NO module —
+  // fabricating a title like "课程" leaks an unrelated CTA onto unrelated cards.
   for (const t of sot.times) {
-    const sentence = rawSentences.find((s) => s.includes(t.source_text)) ?? "";
-    const topic =
-      sentence.match(/([\u4e00-\u9fa5]{2,8}(?:系列|专场|大班课|专题|课))/)?.[1] ?? "课程";
+    const sentence = contextSentences.find((s) => s.includes(t.source_text)) ?? "";
+    const topic = sentence.match(/([\u4e00-\u9fa5]{2,8}(?:系列|专场|大班课|专题|课))/)?.[1];
+    if (!topic) continue;
     modules.push({ title: topic, key_points: [t.value] });
   }
 
   // Scene navigation modules.
   const scenes = ["财务", "销售", "客服", "人力", "市场", "运营"];
   for (const scene of scenes) {
-    if (rawSentences.some((s) => s.includes(scene))) {
+    if (contextSentences.some((s) => s.includes(scene))) {
       const existing = modules.find((m) => m.title.includes(scene));
       if (!existing) modules.push({ title: `${scene}专场`, key_points: [] });
     }
@@ -76,16 +88,9 @@ export function buildImagePlan(input: ImagePlanInput): ImagePlan | undefined {
   }
   if (imageIntent.image_role === "none") return undefined;
 
-  const rawSentences = sot.ai_editable_sections.map((s) => s.text);
-  // Reconstruct sentence pool from source_text spans for module detection.
-  const factSentences = [
-    ...sot.times.map((t) => t.source_text),
-    ...sot.rules.map((r) => r.source_text),
-    ...sot.rewards.map((r) => r.source_text),
-    ...rawSentences,
-  ];
+  const contextSentences = splitSentences(input.rawCopy);
 
-  const modules = deriveModules(sot, factSentences).slice(0, IMAGE_MAX_MODULES + 2);
+  const modules = deriveModules(sot, contextSentences).slice(0, IMAGE_MAX_MODULES + 2);
   const heroTitle = deriveHeroTitle(intent, sot);
   const heroSubtitle = deriveHeroSubtitle(intent, sot);
 

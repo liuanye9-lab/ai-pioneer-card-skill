@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 import { compile } from "./core/pipeline.js";
 import { writeBundle } from "./output/bundle-writer.js";
 import { FeishuCardAdapter } from "./feishu/cardkit-client.js";
@@ -14,7 +15,9 @@ import type { RawInput } from "./core/types.js";
  *   ai-pioneer-card --copy "..."            generate from inline copy
  *   ai-pioneer-card --file path.txt         generate from a copy file
  *   ai-pioneer-card --copy "..." --brand 象上汇 --slug my-card
+ *   ai-pioneer-card --copy "..." --hero-image hero.png  upload & render a real img
  *   ai-pioneer-card --copy "..." --send --chat oc_xxx   (needs credentials)
+ *   ai-pioneer-card --copy "..." --send-cli --chat oc_xxx  (needs lark-cli login)
  *
  * Without credentials, everything runs offline and emits status "Generated".
  */
@@ -44,8 +47,10 @@ interface Args {
   slug?: string;
   outputs?: string;
   send?: boolean;
+  sendCli?: boolean;
   confirm?: boolean;
   chat?: string;
+  heroImage?: string;
   json?: boolean;
 }
 
@@ -61,7 +66,9 @@ function parseArgs(argv: string[]): Args {
       case "--outputs": args.outputs = argv[++i]; break;
       case "--chat": args.chat = argv[++i]; break;
       case "--send": args.send = true; break;
+      case "--send-cli": args.sendCli = true; break;
       case "--confirm": args.confirm = true; break;
+      case "--hero-image": args.heroImage = argv[++i]; break;
       case "--json": args.json = true; break;
       case "-h":
       case "--help": printHelp(); process.exit(0);
@@ -76,17 +83,22 @@ function printHelp(): void {
 Usage:
   ai-pioneer-card --copy "<原始活动文案>" [--brand <品牌名>] [--slug <名称>]
   ai-pioneer-card --file <文案文件路径> [--brand <品牌名>]
+  ai-pioneer-card --copy "..." --hero-image <图片路径>   # 上传并渲染真实图片（需凭证）
   ai-pioneer-card --copy "..." --send --chat <chat_id>   # 需要真实凭证
+  ai-pioneer-card --copy "..." --send-cli --chat <chat_id>  # 走本机 lark-cli 发送
 
 Options:
-  --copy      直接传入原始文案
-  --file      从文件读取原始文案
-  --brand     指定品牌（会尝试复用 brands/<slug>/style.md）
-  --slug      指定输出目录名
-  --outputs   自定义输出根目录（默认 ./outputs）
-  --send      真实发送到飞书（需配置 FEISHU_APP_ID / FEISHU_APP_SECRET）
-  --chat      发送目标 chat_id
-  --json      仅打印 JSON 摘要
+  --copy        直接传入原始文案
+  --file        从文件读取原始文案
+  --brand       指定品牌（会尝试复用 brands/<slug>/style.md）
+  --slug        指定输出目录名
+  --outputs     自定义输出根目录（默认 ./outputs）
+  --hero-image  本地图片路径：配置凭证时上传换取 img_key 并渲染进卡片
+  --send        真实发送到飞书（需配置 FEISHU_APP_ID / FEISHU_APP_SECRET）
+  --send-cli    通过本机 lark-cli 发送（需已 lark-cli auth login）
+  --chat        发送目标 chat_id
+  --confirm     对外发送的显式授权
+  --json        仅打印 JSON 摘要
 `);
 }
 
@@ -112,10 +124,28 @@ async function main(): Promise<void> {
     copy,
     brandName: args.brand,
     slug: args.slug,
-    wantSend: args.send,
+    wantSend: args.send || args.sendCli,
     confirmSend: args.confirm,
   };
   const outputsDir = args.outputs ? resolve(args.outputs) : OUTPUTS_DIR;
+
+  // Image landing path: upload BEFORE compile so the real img_key flows into
+  // the rendered card. Without credentials this degrades to native text.
+  if (args.heroImage) {
+    const imgPath = resolve(args.heroImage);
+    if (!existsSync(imgPath) || !statSync(imgPath).isFile()) {
+      console.error(`image not found: ${imgPath}`);
+      process.exit(1);
+    }
+    const adapter = new FeishuCardAdapter();
+    const up = await adapter.uploadImage(imgPath);
+    if (up.ok && up.imageKey) {
+      input.heroImageKey = up.imageKey;
+      console.log(`🖼️  图片已上传 → img_key: ${up.imageKey}`);
+    } else {
+      console.log(`⚠️  图片未上传（${up.message}），卡片保持原生文字承载。`);
+    }
+  }
 
   const result = compile(input, { brandsDir: BRANDS_DIR });
 
@@ -173,8 +203,10 @@ async function main(): Promise<void> {
     }
   }
 
-  // Optional real send.
-  if (args.send) {
+  // Optional real send — two transports: direct API (--send) or local
+  // lark-cli (--send-cli). Both are outward actions behind the same gates:
+  // hard-failed cards NEVER leave the machine, and a human must --confirm.
+  if (args.send || args.sendCli) {
     // Fact-safety gate (D7): a hard-failed card must NEVER be sent.
     if (result.qa.hardFail) {
       console.log(`\n⛔ 卡片存在事实/合规硬错误（hardFail），已禁止发送：`);
@@ -190,14 +222,34 @@ async function main(): Promise<void> {
       console.log("   这是对外发送动作，请加 --confirm 明确授权后再发送。已跳过发送。");
       return;
     }
+    const chat = args.chat ?? process.env.FEISHU_DEFAULT_CHAT_ID;
+    if (!chat) {
+      console.log("\n⚠️  发送需要 --chat <chat_id> 或 FEISHU_DEFAULT_CHAT_ID。");
+      return;
+    }
+
+    if (args.sendCli) {
+      // lark-cli transport: uses the locally logged-in identity; no app
+      // credentials needed in this process. Card JSON is passed verbatim.
+      const cardJsonStr = JSON.stringify(result.cardJson);
+      try {
+        const out = execFileSync(
+          "lark-cli",
+          ["im", "+messages-send", "--chat-id", chat, "--msg-type", "interactive", "--content", cardJsonStr],
+          { encoding: "utf8", timeout: 30_000 },
+        );
+        console.log(`\n发送结果（lark-cli）：✅\n${out.trim().split("\n").slice(-5).join("\n")}`);
+      } catch (e) {
+        const err = e as { status?: number; stderr?: string; message?: string };
+        console.log(`\n发送结果（lark-cli）：❌ ${err.stderr?.trim() ?? err.message}`);
+      }
+      return;
+    }
+
     const adapter = new FeishuCardAdapter();
     if (!adapter.configured) {
       console.log(`\n⚠️  未配置飞书凭证，跳过发送（状态保持 Generated）。${adapter.statusReason ?? ""}`);
-      return;
-    }
-    const chat = args.chat ?? process.env.FEISHU_DEFAULT_CHAT_ID;
-    if (!chat) {
-      console.log("\n⚠️  --send 需要 --chat <chat_id> 或 FEISHU_DEFAULT_CHAT_ID。");
+      console.log("   或改用 --send-cli 走本机 lark-cli 发送。");
       return;
     }
     const send = await adapter.sendCard({ receiveIdType: "chat_id", receiveId: chat }, result.cardJson);

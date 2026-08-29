@@ -1,7 +1,6 @@
 {
   "status": "Generated",
   "scope_checklist": [
-    "cardkit:card:write",
-    "[event] card.action.trigger 回调订阅已开启"
+    "cardkit:card:write"
   ]
 }

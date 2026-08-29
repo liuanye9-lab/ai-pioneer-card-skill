@@ -89,8 +89,10 @@ export function planCTAs(input: {
   // ---- Secondary CTAs (<= 4) ----
   const secondary: CTA[] = [];
 
-  // Image module mapping (navigation cards).
-  if (imagePlan) {
+  // Image module mapping — ONLY for navigation cards. In text_first /
+  // image_assisted modes a module button is a phantom CTA: it has no real
+  // destination and repeats the body (PRD §D.4).
+  if (imagePlan && renderMode.render_mode === "image_led_navigation") {
     for (const mod of imagePlan.modules) {
       if (secondary.length >= 4) break;
       // Map to a link if one plausibly matches; else callback.

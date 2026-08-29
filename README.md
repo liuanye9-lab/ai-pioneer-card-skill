@@ -144,11 +144,21 @@ Parse → Source of Truth → Fact Lock → Normalize(日期/Emoji) → Semantic
 # 真实发送（需凭证 + chat_id）
 npm run gen -- --copy "..." --send --chat oc_xxxxx
 
+# 走本机 lark-cli 发送（需已 lark-cli auth login，无需应用凭证）
+npm run gen -- --copy "..." --send-cli --chat oc_xxxxx --confirm
+
+# 上传本地图片并渲染为卡片原生 img 元素（需凭证换取 img_key）
+npm run gen -- --copy "..." --hero-image assets/hero.png
+
 # 卡片回调服务（POST /api/feishu/card/callback）
 npx tsx scripts/callback-server.ts
 ```
 
-Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit-client.ts)）：`createCard()` / `sendCard()` / `updateCard()` / `validateCard()`。回调覆盖：签名校验、幂等（重复点击）、过期、无效负载、权限/API/网络错误。
+两条发送通道共用同一套安全门禁：hard-fail 的卡禁止发送；对外发送必须显式 `--confirm`。
+图片链路：`--hero-image` → `FeishuCardAdapter.uploadImage()` 换取 img_key → 渲染原生 img 元素；
+无凭证/上传失败时自动降级为原生文字承载（绝不伪造 img_key）。
+
+Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit-client.ts)）：`createCard()` / `sendCard()` / `updateCard()` / `uploadImage()` / `validateCard()`。回调覆盖：签名校验、幂等（重复点击）、过期、无效负载、权限/API/网络错误。
 
 > Card JSON 2.0 字段依据飞书开放平台官方文档核对（2026-08）。发布前请再次核对最新 Schema 与客户端兼容范围。
 
@@ -161,7 +171,7 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 | `npm run build` | tsc 编译到 `dist/` |
 | `npm run typecheck` | 仅类型检查 |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest（56 用例） |
+| `npm test` | Vitest（99 用例） |
 | `npm run gen -- --copy "..."` | 生成单个卡片 bundle |
 | `npm run examples` | 生成 7 个示例 bundle |
 

@@ -45,10 +45,22 @@
       "target": "https://example.com/calendar"
     },
     {
-      "label": "课程",
+      "label": "财务专场",
       "priority": "secondary",
       "type": "callback",
-      "target": "module_课程"
+      "target": "module_财务专场"
+    },
+    {
+      "label": "销售专场",
+      "priority": "secondary",
+      "type": "callback",
+      "target": "module_销售专场"
+    },
+    {
+      "label": "客服专场",
+      "priority": "secondary",
+      "type": "callback",
+      "target": "module_客服专场"
     }
   ]
 }

@@ -106,7 +106,7 @@ export function compile(input: RawInput, options: PipelineOptions): CompileResul
   const structure = buildInformationArchitecture({ sot, intent, renderMode, attention, style });
 
   // 13: Image Plan.
-  const imagePlan = buildImagePlan({ sot, intent, imageIntent, renderMode, style });
+  const imagePlan = buildImagePlan({ sot, intent, imageIntent, renderMode, style, rawCopy: input.copy });
   if (imagePlan) structure.image = imagePlan;
 
   // 14: CTA Plan.
@@ -128,12 +128,13 @@ export function compile(input: RawInput, options: PipelineOptions): CompileResul
   // 17: Desktop Enhancement (never alters mobile reading order — recorded only).
   const template = chooseTemplate(intent.primary_intent, renderMode.render_mode);
 
-  // 18: Card JSON.
+  // 18: Card JSON. A caller-provided heroImageKey (real upload) turns the
+  // planned image into a native img element; otherwise native-text fallback.
   let workStructure = structure;
   let workCtas = ctas;
   let workImagePlan = imagePlan;
   let workMobileLayout = mobileLayout;
-  let cardJson = renderCardJson({ structure: workStructure, ctas: workCtas, style, renderMode, mobileLayout: workMobileLayout, imagePlan: workImagePlan });
+  let cardJson = renderCardJson({ structure: workStructure, ctas: workCtas, style, renderMode, mobileLayout: workMobileLayout, imagePlan: workImagePlan, imgKey: input.heroImageKey });
   let cardPreview = renderPreview({ structure: workStructure, ctas: workCtas, mobileLayout: workMobileLayout, imagePlan: workImagePlan });
   let cardContentMarkdown = renderCardContentMarkdown({ structure: workStructure, ctas: workCtas, imagePlan: workImagePlan });
 
@@ -166,7 +167,7 @@ export function compile(input: RawInput, options: PipelineOptions): CompileResul
     workCtas = remediated.ctas;
     workImagePlan = remediated.imagePlan;
     workMobileLayout = remediated.mobileLayout;
-    cardJson = renderCardJson({ structure: workStructure, ctas: workCtas, style, renderMode, mobileLayout: workMobileLayout, imagePlan: workImagePlan });
+    cardJson = renderCardJson({ structure: workStructure, ctas: workCtas, style, renderMode, mobileLayout: workMobileLayout, imagePlan: workImagePlan, imgKey: input.heroImageKey });
     cardPreview = renderPreview({ structure: workStructure, ctas: workCtas, mobileLayout: workMobileLayout, imagePlan: workImagePlan });
     cardContentMarkdown = renderCardContentMarkdown({ structure: workStructure, ctas: workCtas, imagePlan: workImagePlan });
     const rerun = runQA({

@@ -6,6 +6,8 @@
 
 ## 信息图（case_summary）
 - 主标题：优秀案例推荐
+- 模块：
+  - 销售专场
 
 ## 按钮
 - [主] 查看案例 → https://example.com/case

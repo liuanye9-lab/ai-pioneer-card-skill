@@ -33,7 +33,7 @@
       },
       {
         "tag": "markdown",
-        "content": "• 课程 — 15:00-16:00\n• 课程 — 14:00-15:00",
+        "content": "• 财务专场\n• 销售专场\n• 客服专场",
         "text_align": "left"
       },
       {
@@ -91,7 +91,7 @@
                     "default_url": "https://example.com/calendar"
                   }
                 ],
-                "element_id": "cta_a"
+                "element_id": "cta_b"
               }
             ]
           },
@@ -104,7 +104,7 @@
                 "tag": "button",
                 "text": {
                   "tag": "plain_text",
-                  "content": "课程"
+                  "content": "财务专场"
                 },
                 "type": "default",
                 "width": "default",
@@ -113,11 +113,70 @@
                   {
                     "type": "callback",
                     "value": {
-                      "key": "module_课程"
+                      "key": "module_财务专场"
                     }
                   }
                 ],
                 "element_id": "cta_8"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "column_set",
+        "flex_mode": "bisect",
+        "horizontal_spacing": "default",
+        "columns": [
+          {
+            "tag": "column",
+            "width": "weighted",
+            "weight": 1,
+            "elements": [
+              {
+                "tag": "button",
+                "text": {
+                  "tag": "plain_text",
+                  "content": "销售专场"
+                },
+                "type": "default",
+                "width": "default",
+                "size": "medium",
+                "behaviors": [
+                  {
+                    "type": "callback",
+                    "value": {
+                      "key": "module_销售专场"
+                    }
+                  }
+                ],
+                "element_id": "cta_9"
+              }
+            ]
+          },
+          {
+            "tag": "column",
+            "width": "weighted",
+            "weight": 1,
+            "elements": [
+              {
+                "tag": "button",
+                "text": {
+                  "tag": "plain_text",
+                  "content": "客服专场"
+                },
+                "type": "default",
+                "width": "default",
+                "size": "medium",
+                "behaviors": [
+                  {
+                    "type": "callback",
+                    "value": {
+                      "key": "module_客服专场"
+                    }
+                  }
+                ],
+                "element_id": "cta_a"
               }
             ]
           }

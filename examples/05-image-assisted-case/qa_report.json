@@ -13,14 +13,7 @@
     {
       "name": "image_qa",
       "pass": true,
-      "issues": [
-        {
-          "code": "IMAGE_NO_INFO",
-          "severity": "warning",
-          "message": "信息型图片缺少模块，可能只是装饰",
-          "stage": "image_qa"
-        }
-      ]
+      "issues": []
     },
     {
       "name": "navigation_qa",
@@ -48,19 +41,12 @@
     "attentionHierarchy": 20,
     "actionClarity": 15,
     "brandConsistency": 15,
-    "visualQuality": 9,
+    "visualQuality": 10,
     "feishuNativeExperience": 10,
-    "total": 99
+    "total": 100
   },
   "pass": true,
   "hardFail": false,
-  "issues": [
-    {
-      "code": "IMAGE_NO_INFO",
-      "severity": "warning",
-      "message": "信息型图片缺少模块，可能只是装饰",
-      "stage": "image_qa"
-    }
-  ],
+  "issues": [],
   "rewrites": 0
 }

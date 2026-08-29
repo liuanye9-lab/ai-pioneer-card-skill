@@ -28,16 +28,6 @@
       },
       {
         "tag": "markdown",
-        "content": "**本周课程已就位**",
-        "text_align": "left"
-      },
-      {
-        "tag": "markdown",
-        "content": "• 课程 — 20:00-21:00",
-        "text_align": "left"
-      },
-      {
-        "tag": "markdown",
         "content": "📅 20:00-21:00",
         "text_align": "left"
       },
@@ -60,25 +50,6 @@
           }
         ],
         "element_id": "cta_6"
-      },
-      {
-        "tag": "button",
-        "text": {
-          "tag": "plain_text",
-          "content": "课程"
-        },
-        "type": "default",
-        "width": "default",
-        "size": "medium",
-        "behaviors": [
-          {
-            "type": "callback",
-            "value": {
-              "key": "module_课程"
-            }
-          }
-        ],
-        "element_id": "cta_7"
       }
     ]
   }

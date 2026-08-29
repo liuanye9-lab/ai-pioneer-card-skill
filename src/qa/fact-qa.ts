@@ -77,11 +77,13 @@ export function runFactQA(input: {
 
   // 6. Other locked precise facts must survive (D1): times & rewards. These are
   //    concrete, short, image-unsafe values that must appear in native text.
+  //    Losing any of them silently violates the first principle (事实准确 > 美观),
+  //    so — like a dropped deadline — they are hard fails, not score deductions.
   for (const t of sot.times) {
     if (!cardText.includes(t.value)) {
       issues.push({
         code: "TIME_DROPPED",
-        severity: "error",
+        severity: "hard_fail",
         message: `关键时间缺失：${t.value}`,
         stage: "fact_qa",
       });
@@ -93,7 +95,7 @@ export function runFactQA(input: {
     if (core && !cardText.includes(core)) {
       issues.push({
         code: "REWARD_DROPPED",
-        severity: "error",
+        severity: "hard_fail",
         message: `奖项关键信息缺失：${core}`,
         stage: "fact_qa",
       });

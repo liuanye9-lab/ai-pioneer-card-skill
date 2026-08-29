@@ -38,12 +38,6 @@
       "priority": "primary",
       "type": "url",
       "target": "https://example.com/live"
-    },
-    {
-      "label": "课程",
-      "priority": "secondary",
-      "type": "callback",
-      "target": "module_课程"
     }
   ]
 }

@@ -17,10 +17,7 @@
     "[HEADER] AI先锋大赛",
     "[PRIMARY] 🎓 培训 · 20:00-21:00 / 预约直播",
     "[IMAGE:hero_summary] 本周课程已就位 (native-text overlay)",
-    "   • 课程 — 20:00-21:00",
     "📅 20:00-21:00",
-    "[PRIMARY CTA] [ 预约直播 ] -> https://example.com/live",
-    "[SECONDARY CTA · stacked]",
-    "   [ 课程 ] -> callback:module_课程"
+    "[PRIMARY CTA] [ 预约直播 ] -> https://example.com/live"
   ]
 }

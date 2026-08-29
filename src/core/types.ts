@@ -35,6 +35,13 @@ export interface RawInput {
   wantSend?: boolean;
   /** Explicit human confirmation that sending is authorized. */
   confirmSend?: boolean;
+  /**
+   * A real Feishu img_key (produced by FeishuCardAdapter.uploadImage or supplied
+   * by the caller). When present AND an image is planned, the card renders a
+   * native img element; otherwise the native-text fallback stays (never a fake
+   * key — a placeholder img breaks the real send).
+   */
+  heroImageKey?: string;
 }
 
 // ---------------------------------------------------------------------------

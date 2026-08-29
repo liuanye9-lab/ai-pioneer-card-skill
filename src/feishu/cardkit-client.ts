@@ -40,6 +40,13 @@ export interface UpdateResult {
   message: string;
 }
 
+export interface UploadImageResult {
+  ok: boolean;
+  status: "Generated" | "Configured" | "Tested";
+  imageKey?: string;
+  message: string;
+}
+
 export class FeishuCardAdapter {
   private auth: FeishuAuthState;
 
@@ -154,6 +161,43 @@ export class FeishuCardAdapter {
         return { ok: false, status: "Configured", message: `update failed: ${data.msg} (code ${data.code})` };
       }
       return { ok: true, status: "Tested", message: "card updated" };
+    } catch (e) {
+      return { ok: false, status: "Configured", message: `network/API error: ${(e as Error).message}` };
+    }
+  }
+
+  /**
+   * Upload a local image and return its img_key so the card can render a real
+   * img element (the image landing path). Without credentials this returns a
+   * structured "not configured" result — callers keep the native-text fallback.
+   */
+  async uploadImage(filePath: string): Promise<UploadImageResult> {
+    const { readFile } = await import("node:fs/promises");
+    const { basename } = await import("node:path");
+    let bytes: Buffer;
+    try {
+      bytes = await readFile(filePath);
+    } catch {
+      return { ok: false, status: "Generated", message: `image file not readable: ${filePath}` };
+    }
+    if (!this.auth.configured || !this.auth.credentials) {
+      return { ok: false, status: "Generated", message: this.auth.reason ?? "credentials not configured" };
+    }
+    try {
+      const token = await getTenantAccessToken(this.auth.credentials);
+      const form = new FormData();
+      form.append("image_type", "message");
+      form.append("image", new Blob([new Uint8Array(bytes)], { type: "application/octet-stream" }), basename(filePath));
+      const res = await fetch(`${this.auth.credentials.baseUrl}/open-apis/im/v1/images`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = (await res.json()) as any;
+      if (data.code !== 0 || !data.data?.image_key) {
+        return { ok: false, status: "Configured", message: `upload failed: ${data.msg} (code ${data.code})` };
+      }
+      return { ok: true, status: "Tested", imageKey: data.data.image_key, message: "image uploaded" };
     } catch (e) {
       return { ok: false, status: "Configured", message: `network/API error: ${(e as Error).message}` };
     }
