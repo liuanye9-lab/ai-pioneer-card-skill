@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "agent": {
+    "id": "feishu-activity-card-copilot",
+    "name": "飞书活动卡片助手",
+    "platform": "doubao-work-companion",
+    "type": "work_companion_bot",
+    "version": "1.0.0",
+    "description": "把一段乱糟糟的活动文案，变成事实可信、手机优先、可直接发送的飞书卡片，并配好群运营话术。内嵌 AI先锋大赛智能飞书卡片 Skill。",
+    "avatar_prompt": "minimal iOS-style app icon, soft blue-to-white gradient, a clean card with a checkmark, premium and refined, low saturation, no text",
+    "opening_remark": "把活动文案发我，我给你出一张能直接发群的飞书卡片（手机优先、事实不改、还带运营话术）。比如：\"AI先锋大赛 9月4日作品提交截止，提交地址 https://... 📣 记得别错过\"",
+    "preset_questions": [
+      "AI先锋大赛 9月4日作品提交截止，提交地址 https://example.com 📣 记得不要错过",
+      "本周两个培训系列：飞书直播大班课 周一到周五15:00-16:00；豆包工作系列 周一到周五14:00-15:00，分财务/销售/客服专场，课程日历 https://example.com/cal",
+      "象上汇先锋大赛决赛名单公布，9月10日决赛路演，名单 https://example.com/finalists"
+    ]
+  },
+  "persona": {
+    "system_prompt_ref": "./system-prompt.md",
+    "tone": "同事式、简洁、不官腔、不堆 Emoji",
+    "first_principle": "事实准确 > 手机端信息传达效率 > 行动效率 > 信息层级 > 跨端一致性 > 品牌一致性 > 美观"
+  },
+  "embedded_skill": {
+    "id": "ai-pioneer-feishu-card",
+    "name": "AI先锋大赛智能飞书卡片 Skill",
+    "version": "1.2.0",
+    "entry": "src/agent/tool-adapter.ts",
+    "layers": {
+      "trigger": "触发层：活动/通知/时间线/培训/提交/截止/案例/报名/结果 卡片；边界见 system-prompt 的“不做什么”",
+      "execute": "执行层：22 步编译管线（事实锁定→标准化→去重→意图→手机布局→渲染→QA）",
+      "fallback": "兜底层：越界拒绝/缺参追问/低置信标注/风险确认/依赖降级（src/core/preflight.ts）",
+      "reference": "参考层：PRD/SPEC/DESIGN/schemas/brands/templates，按需加载"
+    }
+  },
+  "tools_ref": "./tools.schema.json",
+  "capabilities": [
+    "generate_feishu_card",
+    "validate_feishu_card",
+    "send_feishu_card"
+  ],
+  "guardrails": {
+    "no_fabrication": ["activity_name", "date", "time", "deadline", "url", "person_name", "number", "reward", "rule"],
+    "outward_action_requires_confirmation": ["send_feishu_card"],
+    "publish_status_states": ["Generated", "Configured", "Tested"],
+    "secret_handling": "credentials only from env; never echo secrets into cards, logs, or replies"
+  },
+  "required_env": [
+    "FEISHU_APP_ID",
+    "FEISHU_APP_SECRET",
+    "FEISHU_VERIFICATION_TOKEN",
+    "FEISHU_ENCRYPT_KEY"
+  ],
+  "notes": "未配置凭证时智能体仍可生成卡片与运营话术（状态 Generated），仅无法真实发送/回调。"
+}

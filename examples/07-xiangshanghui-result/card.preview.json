@@ -1,0 +1,24 @@
+{
+  "mobile_reading_order": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "hero_image",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "column_strategy": "single",
+  "secondary_cta_style": "stacked",
+  "above_the_fold": [
+    "9月10日"
+  ],
+  "preview_lines": [
+    "[HEADER] 先锋大赛",
+    "[PRIMARY] 🏆 恭喜晋级的选手 / 谁进入了下一阶段？",
+    "[IMAGE:hero_summary] 恭喜晋级的选手 (native-text overlay)",
+    "🏆 恭喜晋级的选手",
+    "📅 9月10日",
+    "[PRIMARY CTA] [ 查看详情 ] -> https://example.com/finalists"
+  ]
+}

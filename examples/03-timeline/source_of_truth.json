@@ -1,0 +1,112 @@
+{
+  "project_name": "AI先锋大赛",
+  "activity_name": "AI先锋大赛",
+  "dates": [
+    {
+      "id": "date_1",
+      "value": "8月20日",
+      "source_text": "8.20",
+      "start": 12,
+      "end": 16,
+      "locked": true,
+      "normalization": {
+        "source": "8.20",
+        "normalized": "8月20日",
+        "semantic_equal": true
+      }
+    },
+    {
+      "id": "date_2",
+      "value": "8月28日",
+      "source_text": "8.28",
+      "start": 22,
+      "end": 26,
+      "locked": true,
+      "normalization": {
+        "source": "8.28",
+        "normalized": "8月28日",
+        "semantic_equal": true
+      }
+    },
+    {
+      "id": "date_3",
+      "value": "9月4日",
+      "source_text": "9.4",
+      "start": 34,
+      "end": 37,
+      "locked": true,
+      "normalization": {
+        "source": "9.4",
+        "normalized": "9月4日",
+        "semantic_equal": true
+      }
+    },
+    {
+      "id": "date_4",
+      "value": "9月10日",
+      "source_text": "9.10",
+      "start": 43,
+      "end": 47,
+      "locked": true,
+      "normalization": {
+        "source": "9.10",
+        "normalized": "9月10日",
+        "semantic_equal": true
+      }
+    }
+  ],
+  "times": [],
+  "deadlines": [],
+  "locations": [],
+  "people": [],
+  "actions": [
+    {
+      "id": "action_6",
+      "value": "立即报名",
+      "action": "立即报名",
+      "source_text": "8.20 报名启动",
+      "locked": false
+    },
+    {
+      "id": "action_7",
+      "value": "提交作品",
+      "action": "提交作品",
+      "source_text": "8.28 初赛作品提交",
+      "locked": false
+    }
+  ],
+  "links": [
+    {
+      "id": "link_5",
+      "value": "https://example.com/timeline",
+      "url": "https://example.com/timeline",
+      "source_text": "https://example.com/timeline",
+      "start": 59,
+      "end": 87,
+      "locked": true,
+      "type": "external"
+    }
+  ],
+  "submission_requirements": [],
+  "rules": [
+    {
+      "id": "fact_8",
+      "value": "9.4 初赛评审",
+      "source_text": "9.4 初赛评审",
+      "locked": true
+    }
+  ],
+  "rewards": [],
+  "status": [
+    {
+      "id": "fact_9",
+      "value": "8.20 报名启动",
+      "source_text": "8.20 报名启动",
+      "locked": false
+    }
+  ],
+  "brand_entities": [],
+  "ai_editable_sections": [],
+  "uncertain_information": [],
+  "raw_copy_hash": "89420bf5"
+}

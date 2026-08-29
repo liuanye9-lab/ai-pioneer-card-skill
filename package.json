@@ -1,0 +1,39 @@
+{
+  "name": "ai-pioneer-card-skill",
+  "version": "1.2.0",
+  "description": "AI先锋大赛智能飞书卡片 Skill — Mobile-first Feishu Card JSON 2.0 content compiler, design system, Feishu runtime & operation copilot.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "ai-pioneer-card": "dist/src/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "tsx src/cli.ts",
+    "gen": "tsx src/cli.ts",
+    "examples": "tsx scripts/generate-examples.ts",
+    "agent:demo": "tsx scripts/agent-demo.ts",
+    "agent:conversation": "tsx scripts/agent-conversation.ts",
+    "agent:chat": "tsx scripts/agent-chat.ts",
+    "agent:server": "tsx scripts/tool-server.ts"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "tsx": "^4.15.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "mobile_reading_order": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "column_strategy": "single",
+  "secondary_cta_style": "stacked",
+  "above_the_fold": [
+    "9月4日截止",
+    "提交作品"
+  ],
+  "preview_lines": [
+    "[HEADER] AI先锋大赛  ⟨9月4日 截止⟩",
+    "[PRIMARY] ⏰ 9月4日 截止 / 作品提交",
+    "📤 提交作品",
+    "💡 作品需包含 Agent 拆解说明",
+    "[PRIMARY CTA] [ 提交作品 ] -> https://example.com/submit"
+  ]
+}

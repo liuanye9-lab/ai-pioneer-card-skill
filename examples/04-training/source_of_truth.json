@@ -1,0 +1,47 @@
+{
+  "project_name": "AI先锋大赛",
+  "activity_name": "AI先锋大赛",
+  "dates": [],
+  "times": [
+    {
+      "id": "time_1",
+      "value": "20:00-21:00",
+      "source_text": "20:00-21:00",
+      "start": 26,
+      "end": 37,
+      "locked": true
+    }
+  ],
+  "deadlines": [],
+  "locations": [],
+  "people": [],
+  "actions": [
+    {
+      "id": "action_3",
+      "value": "预约直播",
+      "action": "预约直播",
+      "source_text": "预约直播:https://example.com/live",
+      "locked": false
+    }
+  ],
+  "links": [
+    {
+      "id": "link_2",
+      "value": "https://example.com/live",
+      "url": "https://example.com/live",
+      "source_text": "https://example.com/live",
+      "start": 56,
+      "end": 80,
+      "locked": true,
+      "type": "meeting"
+    }
+  ],
+  "submission_requirements": [],
+  "rules": [],
+  "rewards": [],
+  "status": [],
+  "brand_entities": [],
+  "ai_editable_sections": [],
+  "uncertain_information": [],
+  "raw_copy_hash": "5d674cd0"
+}

@@ -1,0 +1,38 @@
+{
+  "project_name": "AI先锋大赛",
+  "activity_name": "AI先锋大赛",
+  "dates": [],
+  "times": [],
+  "deadlines": [],
+  "locations": [],
+  "people": [],
+  "actions": [
+    {
+      "id": "action_2",
+      "value": "查看案例",
+      "action": "查看案例",
+      "source_text": "查看完整案例:https://example.com/case",
+      "locked": false
+    }
+  ],
+  "links": [
+    {
+      "id": "link_1",
+      "value": "https://example.com/case",
+      "url": "https://example.com/case",
+      "source_text": "https://example.com/case",
+      "start": 60,
+      "end": 84,
+      "locked": true,
+      "type": "external"
+    }
+  ],
+  "submission_requirements": [],
+  "rules": [],
+  "rewards": [],
+  "status": [],
+  "brand_entities": [],
+  "ai_editable_sections": [],
+  "uncertain_information": [],
+  "raw_copy_hash": "dc627abc"
+}

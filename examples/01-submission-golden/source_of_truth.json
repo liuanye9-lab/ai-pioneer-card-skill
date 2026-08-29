@@ -1,0 +1,75 @@
+{
+  "project_name": "AI先锋大赛",
+  "activity_name": "AI先锋大赛",
+  "dates": [
+    {
+      "id": "date_1",
+      "value": "9月4日",
+      "source_text": "9月4日",
+      "start": 7,
+      "end": 11,
+      "locked": true
+    }
+  ],
+  "times": [],
+  "deadlines": [
+    {
+      "id": "deadline_3",
+      "value": "9月4日截止",
+      "date": "9月4日",
+      "action": "作品提交",
+      "source_text": "9月4日作品提交截止",
+      "locked": true
+    }
+  ],
+  "locations": [
+    {
+      "id": "fact_5",
+      "value": "提交地址:https://example.com/submit",
+      "source_text": "提交地址:https://example.com/submit",
+      "locked": true
+    }
+  ],
+  "people": [],
+  "actions": [
+    {
+      "id": "action_4",
+      "value": "提交作品",
+      "action": "提交作品",
+      "source_text": "9月4日作品提交截止",
+      "locked": false,
+      "target_url": "https://example.com/submit"
+    }
+  ],
+  "links": [
+    {
+      "id": "link_2",
+      "value": "https://example.com/submit",
+      "url": "https://example.com/submit",
+      "source_text": "https://example.com/submit",
+      "start": 40,
+      "end": 66,
+      "locked": true,
+      "type": "submission"
+    }
+  ],
+  "submission_requirements": [],
+  "rules": [],
+  "rewards": [],
+  "status": [],
+  "brand_entities": [],
+  "ai_editable_sections": [
+    {
+      "id": "edit_6",
+      "text": "还没提交作品的小伙伴记得尽快提交",
+      "role": "supporting"
+    },
+    {
+      "id": "edit_7",
+      "text": "📣 大家记得不要错过",
+      "role": "supporting"
+    }
+  ],
+  "uncertain_information": [],
+  "raw_copy_hash": "8c36552c"
+}

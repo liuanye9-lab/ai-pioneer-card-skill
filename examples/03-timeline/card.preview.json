@@ -1,0 +1,27 @@
+{
+  "mobile_reading_order": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "hero_image",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "column_strategy": "single",
+  "secondary_cta_style": "stacked",
+  "above_the_fold": [
+    "8月20日",
+    "立即报名"
+  ],
+  "preview_lines": [
+    "[HEADER] AI先锋大赛  ⟨已开启⟩",
+    "[PRIMARY] 📅 8月20日 · 立即报名 / 立即报名",
+    "[IMAGE:hero_summary] AI先锋大赛 (native-text overlay)",
+    "   ● 8月20日 · 立即报名",
+    "   ○ 8月28日 · 提交作品",
+    "   ○ 9月4日 · 赛程节点",
+    "   ○ 9月10日 · 赛程节点",
+    "[PRIMARY CTA] [ 立即报名 ] -> https://example.com/timeline"
+  ]
+}

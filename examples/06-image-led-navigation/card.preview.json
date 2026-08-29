@@ -1,0 +1,26 @@
+{
+  "mobile_reading_order": [
+    "header",
+    "primary_anchor",
+    "information_image",
+    "primary_cta",
+    "secondary_cta_grid",
+    "supporting_note"
+  ],
+  "column_strategy": "limited_two_column",
+  "secondary_cta_style": "two_column",
+  "above_the_fold": [],
+  "preview_lines": [
+    "[HEADER] 活动通知",
+    "[PRIMARY] 🎓 培训 · 15:00-16:00 / 预约直播",
+    "[IMAGE:schedule_overview] 本周课程已就位 (native-text overlay)",
+    "   • 课程 — 15:00-16:00",
+    "   • 课程 — 14:00-15:00",
+    "📅 15:00-16:00",
+    "📅 14:00-15:00",
+    "[PRIMARY CTA] [ 预约直播 ] -> https://example.com/calendar",
+    "[SECONDARY CTA · two_column]",
+    "   [ 查看课程日历 ] -> https://example.com/calendar",
+    "   [ 课程 ] -> callback:module_课程"
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "project_name": "先锋大赛",
+  "activity_name": "先锋大赛",
+  "dates": [
+    {
+      "id": "date_1",
+      "value": "9月10日",
+      "source_text": "9月10日",
+      "start": 33,
+      "end": 38,
+      "locked": true
+    }
+  ],
+  "times": [],
+  "deadlines": [],
+  "locations": [],
+  "people": [],
+  "actions": [],
+  "links": [
+    {
+      "id": "link_2",
+      "value": "https://example.com/finalists",
+      "url": "https://example.com/finalists",
+      "source_text": "https://example.com/finalists",
+      "start": 46,
+      "end": 75,
+      "locked": true,
+      "type": "external"
+    }
+  ],
+  "submission_requirements": [],
+  "rules": [],
+  "rewards": [
+    {
+      "id": "fact_3",
+      "value": "恭喜晋级的选手",
+      "source_text": "恭喜晋级的选手",
+      "locked": true
+    }
+  ],
+  "status": [],
+  "brand_entities": [
+    {
+      "id": "brand_4",
+      "value": "象上汇",
+      "source_text": "象上汇",
+      "locked": true
+    }
+  ],
+  "ai_editable_sections": [],
+  "uncertain_information": [],
+  "raw_copy_hash": "ace6d2fc"
+}

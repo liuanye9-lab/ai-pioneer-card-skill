@@ -1,0 +1,43 @@
+{
+  "template": "announcement",
+  "render_mode": {
+    "render_mode": "image_assisted",
+    "cta_mode": "single",
+    "image_required": false,
+    "reason": "主视觉/案例摘要图作为辅助，正文承接核心事实。"
+  },
+  "device_profile": {
+    "primarySurface": "mobile",
+    "targets": [
+      "ios",
+      "android",
+      "desktop"
+    ],
+    "mobileFirst": true,
+    "allowHorizontalScroll": false,
+    "preferredColumns": 1,
+    "maxTextColumns": 2,
+    "preferredPrimaryCTA": "full_width"
+  },
+  "style_resolution": {
+    "note": "复用已缓存品牌视觉：象上汇先锋大赛 · 现代东方高级赛事卡片系统。以黑白留白为基底，以流动路径为母题，以轻交互与状态切换建立丰富体验。",
+    "researchRequired": false
+  },
+  "reading_order": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "hero_image",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "cta_summary": [
+    {
+      "label": "查看详情",
+      "priority": "primary",
+      "type": "url",
+      "target": "https://example.com/finalists"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "schema": "2.0",
+  "config": {
+    "update_multi": true,
+    "width_mode": "fill",
+    "enable_forward": true
+  },
+  "header": {
+    "title": {
+      "tag": "plain_text",
+      "content": "AI先锋大赛"
+    },
+    "template": "blue"
+  },
+  "body": {
+    "direction": "vertical",
+    "padding": "12px 12px 12px 12px",
+    "elements": [
+      {
+        "tag": "markdown",
+        "content": "💡 **AI先锋大赛**",
+        "text_align": "left"
+      },
+      {
+        "tag": "markdown",
+        "content": "值得参考的实战拆解",
+        "text_align": "left"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "button",
+        "text": {
+          "tag": "plain_text",
+          "content": "查看案例"
+        },
+        "type": "primary",
+        "width": "fill",
+        "size": "medium",
+        "behaviors": [
+          {
+            "type": "open_url",
+            "default_url": "https://example.com/case"
+          }
+        ],
+        "element_id": "cta_4"
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "template": "submission",
+  "render_mode": {
+    "render_mode": "text_first",
+    "cta_mode": "single",
+    "image_required": false,
+    "reason": "以精确事实为核心，文字优先，图片最多作为轻量氛围。"
+  },
+  "device_profile": {
+    "primarySurface": "mobile",
+    "targets": [
+      "ios",
+      "android",
+      "desktop"
+    ],
+    "mobileFirst": true,
+    "allowHorizontalScroll": false,
+    "preferredColumns": 1,
+    "maxTextColumns": 2,
+    "preferredPrimaryCTA": "full_width"
+  },
+  "style_resolution": {
+    "note": "无品牌约束，使用 AI先锋大赛默认视觉（Premium AI × Feishu Native × iOS Editorial）。",
+    "researchRequired": false
+  },
+  "reading_order": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "cta_summary": [
+    {
+      "label": "提交作品",
+      "priority": "primary",
+      "type": "url",
+      "target": "https://example.com/submit"
+    }
+  ]
+}

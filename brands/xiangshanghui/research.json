@@ -1,0 +1,25 @@
+{
+  "brand_slug": "xiangshanghui",
+  "brand_names": ["象上汇", "象上汇先锋大赛"],
+  "source": "project-provided style.md (Downloads/style.md)",
+  "note": "本 research 由项目提供的 style.md 沉淀而来，非实时官网调研。若需刷新品牌视觉，应重新调研官网/官方社媒/官方 Logo。",
+  "positioning": "现代东方美学 + 高级赛事秩序 + 轻交互卡片体验",
+  "keywords": ["现代东方", "黑白灰基底", "留白", "香槟金点缀", "流动曲线", "水墨意象", "向上路径", "低饱和", "仪式感"],
+  "colors": {
+    "primary": "#161616",
+    "surface": "#F5F3EE",
+    "secondary_text": "#6E706D",
+    "muted": "#CAC7C0",
+    "accent": "#B99A65",
+    "success": "#7E8C6A",
+    "warning": "#8B5E3C",
+    "info": "#7D8791"
+  },
+  "typography": {
+    "title": ["思源宋体", "方正宋体"],
+    "body": ["思源黑体", "HarmonyOS Sans"],
+    "latin": "uppercase, small, tracking-wide"
+  },
+  "user_group": "参赛选手 / 赛事运营 / 客户成功团队",
+  "confidence": "high (project-authored)"
+}

@@ -1,0 +1,17 @@
+{
+  "status": "ok",
+  "boundary": {
+    "inScope": true,
+    "reason": "识别到活动/通知类信号，属于飞书卡片生成场景。"
+  },
+  "clarifications": [],
+  "lowConfidence": [
+    {
+      "field": "activity_name",
+      "note": "未能明确识别活动名称，Header 使用了兜底文案，建议补充。"
+    }
+  ],
+  "risks": [],
+  "degradations": [],
+  "proceed": true
+}

@@ -1,0 +1,52 @@
+{
+  "checks": [
+    {
+      "name": "fact_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "information_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "image_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "navigation_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "brand_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "feishu_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "mobile_qa",
+      "pass": true,
+      "issues": []
+    }
+  ],
+  "score": {
+    "informationClarity": 30,
+    "attentionHierarchy": 20,
+    "actionClarity": 15,
+    "brandConsistency": 15,
+    "visualQuality": 10,
+    "feishuNativeExperience": 10,
+    "total": 100
+  },
+  "pass": true,
+  "hardFail": false,
+  "issues": [],
+  "rewrites": 0
+}

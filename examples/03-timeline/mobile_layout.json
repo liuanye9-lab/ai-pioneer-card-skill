@@ -1,0 +1,24 @@
+{
+  "mobile_first": true,
+  "readingOrder": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "hero_image",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "columnStrategy": "single",
+  "primaryAnchorPosition": "top",
+  "primaryCTAPlacement": "after_primary_content",
+  "secondaryCTAStyle": "stacked",
+  "maxSecondaryCTAPerRow": 1,
+  "imageMode": "hero",
+  "imageReadableWithoutZoom": true,
+  "criticalFactsAboveFold": [
+    "8月20日",
+    "立即报名"
+  ],
+  "warnings": []
+}

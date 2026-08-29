@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Env / secrets — NEVER commit real credentials
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Generated bundles (keep the folder, ignore run artifacts)
+outputs/*/
+!outputs/.gitkeep
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Test / coverage
+coverage/
+.vitest/

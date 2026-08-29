@@ -1,0 +1,66 @@
+{
+  "schema": "2.0",
+  "config": {
+    "update_multi": true,
+    "width_mode": "fill",
+    "enable_forward": true
+  },
+  "header": {
+    "title": {
+      "tag": "plain_text",
+      "content": "AI先锋大赛"
+    },
+    "template": "blue",
+    "text_tag_list": [
+      {
+        "tag": "text_tag",
+        "text": {
+          "tag": "plain_text",
+          "content": "已开启"
+        },
+        "color": "carmine"
+      }
+    ]
+  },
+  "body": {
+    "direction": "vertical",
+    "padding": "12px 12px 12px 12px",
+    "elements": [
+      {
+        "tag": "markdown",
+        "content": "📅 **8月20日 · 立即报名**",
+        "text_align": "left"
+      },
+      {
+        "tag": "markdown",
+        "content": "立即报名",
+        "text_align": "left"
+      },
+      {
+        "tag": "markdown",
+        "content": "● **8月20日** · 立即报名\n○ 8月28日 · 提交作品\n○ 9月4日 · 赛程节点\n○ 9月10日 · 赛程节点",
+        "text_align": "left"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "button",
+        "text": {
+          "tag": "plain_text",
+          "content": "立即报名"
+        },
+        "type": "primary",
+        "width": "fill",
+        "size": "medium",
+        "behaviors": [
+          {
+            "type": "open_url",
+            "default_url": "https://example.com/timeline"
+          }
+        ],
+        "element_id": "cta_c"
+      }
+    ]
+  }
+}

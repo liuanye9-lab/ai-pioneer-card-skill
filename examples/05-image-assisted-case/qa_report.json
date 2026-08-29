@@ -1,0 +1,66 @@
+{
+  "checks": [
+    {
+      "name": "fact_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "information_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "image_qa",
+      "pass": true,
+      "issues": [
+        {
+          "code": "IMAGE_NO_INFO",
+          "severity": "warning",
+          "message": "信息型图片缺少模块，可能只是装饰",
+          "stage": "image_qa"
+        }
+      ]
+    },
+    {
+      "name": "navigation_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "brand_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "feishu_qa",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "name": "mobile_qa",
+      "pass": true,
+      "issues": []
+    }
+  ],
+  "score": {
+    "informationClarity": 30,
+    "attentionHierarchy": 20,
+    "actionClarity": 15,
+    "brandConsistency": 15,
+    "visualQuality": 9,
+    "feishuNativeExperience": 10,
+    "total": 99
+  },
+  "pass": true,
+  "hardFail": false,
+  "issues": [
+    {
+      "code": "IMAGE_NO_INFO",
+      "severity": "warning",
+      "message": "信息型图片缺少模块，可能只是装饰",
+      "stage": "image_qa"
+    }
+  ],
+  "rewrites": 0
+}

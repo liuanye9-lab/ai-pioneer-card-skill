@@ -1,0 +1,54 @@
+{
+  "template": "image_schedule_overview",
+  "render_mode": {
+    "render_mode": "image_led_navigation",
+    "cta_mode": "multi",
+    "image_required": true,
+    "reason": "图片承担课程/多入口概括，正文极少，按钮承担导航——采用 image_led_navigation。"
+  },
+  "device_profile": {
+    "primarySurface": "mobile",
+    "targets": [
+      "ios",
+      "android",
+      "desktop"
+    ],
+    "mobileFirst": true,
+    "allowHorizontalScroll": false,
+    "preferredColumns": 1,
+    "maxTextColumns": 2,
+    "preferredPrimaryCTA": "full_width"
+  },
+  "style_resolution": {
+    "note": "无品牌约束，使用 AI先锋大赛默认视觉（Premium AI × Feishu Native × iOS Editorial）。",
+    "researchRequired": false
+  },
+  "reading_order": [
+    "header",
+    "primary_anchor",
+    "information_image",
+    "primary_cta",
+    "secondary_cta_grid",
+    "supporting_note"
+  ],
+  "cta_summary": [
+    {
+      "label": "预约直播",
+      "priority": "primary",
+      "type": "url",
+      "target": "https://example.com/calendar"
+    },
+    {
+      "label": "查看课程日历",
+      "priority": "secondary",
+      "type": "url",
+      "target": "https://example.com/calendar"
+    },
+    {
+      "label": "课程",
+      "priority": "secondary",
+      "type": "callback",
+      "target": "module_课程"
+    }
+  ]
+}

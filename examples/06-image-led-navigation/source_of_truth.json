@@ -1,0 +1,45 @@
+{
+  "dates": [],
+  "times": [
+    {
+      "id": "time_1",
+      "value": "15:00-16:00",
+      "source_text": "15:00-16:00",
+      "start": 27,
+      "end": 38,
+      "locked": true
+    },
+    {
+      "id": "time_2",
+      "value": "14:00-15:00",
+      "source_text": "14:00-15:00",
+      "start": 60,
+      "end": 71,
+      "locked": true
+    }
+  ],
+  "deadlines": [],
+  "locations": [],
+  "people": [],
+  "actions": [],
+  "links": [
+    {
+      "id": "link_3",
+      "value": "https://example.com/calendar",
+      "url": "https://example.com/calendar",
+      "source_text": "https://example.com/calendar",
+      "start": 91,
+      "end": 119,
+      "locked": true,
+      "type": "calendar"
+    }
+  ],
+  "submission_requirements": [],
+  "rules": [],
+  "rewards": [],
+  "status": [],
+  "brand_entities": [],
+  "ai_editable_sections": [],
+  "uncertain_information": [],
+  "raw_copy_hash": "312f3ae8"
+}

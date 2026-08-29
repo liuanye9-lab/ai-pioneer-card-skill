@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "style.schema.json",
+  "title": "StyleProfile",
+  "type": "object",
+  "required": ["slug", "brandIdentity", "keywords", "colors", "feishuHeaderTemplate", "isBrandResolved", "markdown"],
+  "properties": {
+    "slug": { "type": "string" },
+    "brandIdentity": { "type": "string" },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+    "visualDirection": { "type": "string" },
+    "emotionalTone": { "type": "string" },
+    "colors": {
+      "type": "object",
+      "required": ["primaryBrand", "primaryText", "secondaryText", "surface", "accent"],
+      "properties": {
+        "primaryBrand": { "type": "string" },
+        "primaryText": { "type": "string" },
+        "secondaryText": { "type": "string" },
+        "mutedText": { "type": "string" },
+        "surface": { "type": "string" },
+        "elevatedSurface": { "type": "string" },
+        "accent": { "type": "string" },
+        "success": { "type": "string" },
+        "warning": { "type": "string" },
+        "danger": { "type": "string" },
+        "divider": { "type": "string" }
+      }
+    },
+    "gradient": { "type": "string" },
+    "feishuHeaderTemplate": {
+      "enum": ["blue", "wathet", "turquoise", "green", "yellow", "orange", "red", "carmine", "violet", "purple", "indigo", "grey", "default"]
+    },
+    "isBrandResolved": { "type": "boolean" },
+    "markdown": { "type": "string" }
+  }
+}

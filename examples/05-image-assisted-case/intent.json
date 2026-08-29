@@ -1,0 +1,31 @@
+{
+  "intent": {
+    "primary_intent": "case_showcase",
+    "primary_question": "这个案例值得看什么？",
+    "primary_action": "查看案例",
+    "primary_attention_anchor": "AI先锋大赛",
+    "secondary_attention_anchor": [],
+    "recommended_layout": "case_navigation",
+    "recommended_interactions": [
+      "查看案例"
+    ],
+    "confidence": 0.93
+  },
+  "render_mode": {
+    "render_mode": "image_assisted",
+    "cta_mode": "single",
+    "image_required": false,
+    "reason": "主视觉/案例摘要图作为辅助，正文承接核心事实。"
+  },
+  "image_intent": {
+    "image_mode": "recommended",
+    "image_role": "case_summary",
+    "reason": "主题型通知/培训/案例，主视觉能建立第一眼吸引与主题记忆，图片作为辅助。",
+    "text_to_image_ratio": "50_50"
+  },
+  "attention": {
+    "primary_anchor": "AI先锋大赛",
+    "secondary_anchors": [],
+    "supporting": []
+  }
+}

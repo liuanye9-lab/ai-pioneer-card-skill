@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "boundary": {
+    "inScope": true,
+    "reason": "识别到活动/通知类信号，属于飞书卡片生成场景。"
+  },
+  "clarifications": [],
+  "lowConfidence": [],
+  "risks": [],
+  "degradations": [],
+  "proceed": true
+}

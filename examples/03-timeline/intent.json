@@ -1,0 +1,33 @@
+{
+  "intent": {
+    "primary_intent": "timeline",
+    "primary_question": "什么时候需要做什么？",
+    "primary_action": "立即报名",
+    "primary_attention_anchor": "8月20日 · 立即报名",
+    "secondary_attention_anchor": [],
+    "recommended_layout": "vertical_timeline",
+    "recommended_interactions": [
+      "查看详情"
+    ],
+    "confidence": 0.75
+  },
+  "render_mode": {
+    "render_mode": "image_assisted",
+    "cta_mode": "multi",
+    "image_required": false,
+    "reason": "主视觉/案例摘要图作为辅助，正文承接核心事实。"
+  },
+  "image_intent": {
+    "image_mode": "recommended",
+    "image_role": "hero_summary",
+    "reason": "主题型通知/培训/案例，主视觉能建立第一眼吸引与主题记忆，图片作为辅助。",
+    "text_to_image_ratio": "50_50"
+  },
+  "attention": {
+    "primary_anchor": "8月20日 · 立即报名",
+    "secondary_anchors": [],
+    "supporting": [
+      "9.4 初赛评审"
+    ]
+  }
+}

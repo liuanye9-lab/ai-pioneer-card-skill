@@ -1,0 +1,20 @@
+{
+  "mobile_first": true,
+  "readingOrder": [
+    "header",
+    "primary_anchor",
+    "information_image",
+    "primary_cta",
+    "secondary_cta_grid",
+    "supporting_note"
+  ],
+  "columnStrategy": "limited_two_column",
+  "primaryAnchorPosition": "top",
+  "primaryCTAPlacement": "after_primary_content",
+  "secondaryCTAStyle": "two_column",
+  "maxSecondaryCTAPerRow": 2,
+  "imageMode": "information",
+  "imageReadableWithoutZoom": true,
+  "criticalFactsAboveFold": [],
+  "warnings": []
+}

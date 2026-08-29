@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "card-intent.schema.json",
+  "title": "CardIntentResult",
+  "type": "object",
+  "required": ["primary_intent", "primary_question", "primary_action", "recommended_layout", "confidence"],
+  "properties": {
+    "primary_intent": {
+      "enum": ["timeline", "deadline", "training", "submission", "case_showcase", "announcement", "registration", "result", "award", "reminder", "countdown", "guide", "custom"]
+    },
+    "primary_question": { "type": "string" },
+    "primary_action": { "type": "string" },
+    "primary_attention_anchor": { "type": "string" },
+    "secondary_attention_anchor": { "type": "array", "items": { "type": "string" }, "maxItems": 3 },
+    "recommended_layout": { "type": "string" },
+    "recommended_interactions": { "type": "array", "items": { "type": "string" } },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

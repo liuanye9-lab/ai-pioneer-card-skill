@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "source-of-truth.schema.json",
+  "title": "SourceOfTruth",
+  "type": "object",
+  "required": ["dates", "deadlines", "links", "raw_copy_hash"],
+  "properties": {
+    "project_name": { "type": "string" },
+    "activity_name": { "type": "string" },
+    "card_purpose": { "type": "string" },
+    "dates": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "times": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "deadlines": { "type": "array", "items": { "$ref": "#/definitions/deadlineFact" } },
+    "locations": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "people": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "actions": { "type": "array", "items": { "$ref": "#/definitions/actionFact" } },
+    "links": { "type": "array", "items": { "$ref": "#/definitions/linkFact" } },
+    "submission_requirements": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "rules": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "rewards": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "status": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "brand_entities": { "type": "array", "items": { "$ref": "#/definitions/factField" } },
+    "ai_editable_sections": { "type": "array" },
+    "uncertain_information": { "type": "array" },
+    "raw_copy_hash": { "type": "string" }
+  },
+  "definitions": {
+    "factField": {
+      "type": "object",
+      "required": ["id", "value", "source_text", "locked"],
+      "properties": {
+        "id": { "type": "string" },
+        "value": { "type": "string" },
+        "source_text": { "type": "string" },
+        "start": { "type": "number" },
+        "end": { "type": "number" },
+        "locked": { "type": "boolean" },
+        "normalization": {
+          "type": "object",
+          "required": ["source", "normalized", "semantic_equal"],
+          "properties": {
+            "source": { "type": "string" },
+            "normalized": { "type": "string" },
+            "semantic_equal": { "const": true }
+          }
+        }
+      }
+    },
+    "deadlineFact": {
+      "allOf": [
+        { "$ref": "#/definitions/factField" },
+        { "type": "object", "required": ["date"], "properties": { "date": { "type": "string" }, "action": { "type": "string" } } }
+      ]
+    },
+    "actionFact": {
+      "allOf": [
+        { "$ref": "#/definitions/factField" },
+        { "type": "object", "required": ["action"], "properties": { "action": { "type": "string" }, "target_url": { "type": "string" } } }
+      ]
+    },
+    "linkFact": {
+      "allOf": [
+        { "$ref": "#/definitions/factField" },
+        { "type": "object", "required": ["url"], "properties": { "url": { "type": "string" }, "type": { "type": "string" } } }
+      ]
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "project_name": "AI先锋大赛",
+  "activity_name": "AI先锋大赛",
+  "dates": [
+    {
+      "id": "date_1",
+      "value": "9月4日",
+      "source_text": "0904",
+      "start": 16,
+      "end": 20,
+      "locked": true,
+      "normalization": {
+        "source": "0904",
+        "normalized": "9月4日",
+        "semantic_equal": true
+      }
+    }
+  ],
+  "times": [],
+  "deadlines": [
+    {
+      "id": "deadline_3",
+      "value": "9月4日截止",
+      "date": "9月4日",
+      "action": "作品提交",
+      "source_text": "AI先锋大赛 初赛作品提交⏰将在0904截止",
+      "locked": true
+    }
+  ],
+  "locations": [],
+  "people": [],
+  "actions": [
+    {
+      "id": "action_4",
+      "value": "提交作品",
+      "action": "提交作品",
+      "source_text": "AI先锋大赛 初赛作品提交⏰将在0904截止",
+      "locked": false,
+      "target_url": "https://example.com/submit"
+    }
+  ],
+  "links": [
+    {
+      "id": "link_2",
+      "value": "https://example.com/submit",
+      "url": "https://example.com/submit",
+      "source_text": "https://example.com/submit",
+      "start": 45,
+      "end": 71,
+      "locked": true,
+      "type": "submission"
+    }
+  ],
+  "submission_requirements": [
+    {
+      "id": "fact_5",
+      "value": "作品需包含 Agent 拆解说明",
+      "source_text": "作品需包含 Agent 拆解说明",
+      "locked": true
+    }
+  ],
+  "rules": [],
+  "rewards": [],
+  "status": [],
+  "brand_entities": [],
+  "ai_editable_sections": [],
+  "uncertain_information": [],
+  "raw_copy_hash": "2e674df6"
+}

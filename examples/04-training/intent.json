@@ -1,0 +1,36 @@
+{
+  "intent": {
+    "primary_intent": "training",
+    "primary_question": "什么时候上什么课？",
+    "primary_action": "预约直播",
+    "primary_attention_anchor": "培训 · 20:00-21:00",
+    "secondary_attention_anchor": [
+      "20:00-21:00"
+    ],
+    "recommended_layout": "training_detail",
+    "recommended_interactions": [
+      "预约直播",
+      "查看课程日历"
+    ],
+    "confidence": 0.85
+  },
+  "render_mode": {
+    "render_mode": "image_assisted",
+    "cta_mode": "single",
+    "image_required": false,
+    "reason": "主视觉/案例摘要图作为辅助，正文承接核心事实。"
+  },
+  "image_intent": {
+    "image_mode": "recommended",
+    "image_role": "hero_summary",
+    "reason": "主题型通知/培训/案例，主视觉能建立第一眼吸引与主题记忆，图片作为辅助。",
+    "text_to_image_ratio": "50_50"
+  },
+  "attention": {
+    "primary_anchor": "培训 · 20:00-21:00",
+    "secondary_anchors": [
+      "20:00-21:00"
+    ],
+    "supporting": []
+  }
+}

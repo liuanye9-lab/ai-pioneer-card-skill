@@ -1,0 +1,22 @@
+{
+  "mobile_reading_order": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "hero_image",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "column_strategy": "single",
+  "secondary_cta_style": "stacked",
+  "above_the_fold": [
+    "查看案例"
+  ],
+  "preview_lines": [
+    "[HEADER] AI先锋大赛",
+    "[PRIMARY] 💡 AI先锋大赛 / 值得参考的实战拆解",
+    "[IMAGE:case_summary] 优秀案例推荐 (native-text overlay)",
+    "[PRIMARY CTA] [ 查看案例 ] -> https://example.com/case"
+  ]
+}

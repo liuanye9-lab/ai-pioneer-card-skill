@@ -1,0 +1,71 @@
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "generate_feishu_card",
+        "description": "把一段原始活动文案编译成事实可信、手机优先、信息清晰的飞书卡片（Card JSON 2.0）。适用于活动通知、时间线、培训、作品提交、截止提醒、案例展示、报名、结果/奖项公布等群卡片。不适用于长文写作、纯图片生成、开放问答、日程/多维表数据操作（应转对应 Skill）。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "copy": {
+              "type": "string",
+              "description": "原始活动文案（可以是乱糟糟的一段话）。这是唯一事实源，禁止编造名称/日期/URL。"
+            },
+            "brand": {
+              "type": "string",
+              "description": "可选。品牌名（如“象上汇”）。会复用 brands/<slug>/style.md，无缓存则用默认视觉，绝不凭名字猜。"
+            },
+            "slug": {
+              "type": "string",
+              "description": "可选。输出目录名。"
+            },
+            "want_send": {
+              "type": "boolean",
+              "description": "可选。是否打算发送。设为 true 会触发风险确认，但不会真的发送（发送用 send_feishu_card）。"
+            },
+            "confirm_send": {
+              "type": "boolean",
+              "description": "可选。对 want_send 的显式授权确认。"
+            },
+            "write_bundle": {
+              "type": "boolean",
+              "description": "可选。是否把完整产物写入 outputs/ 目录（card.json/style.md/qa_report.json 等）。默认 false。"
+            }
+          },
+          "required": ["copy"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "validate_feishu_card",
+        "description": "对一份 Card JSON 2.0 做结构校验（离线，随时可用）。返回 valid/errors/warnings。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "card_json": { "type": "object", "description": "待校验的 Card JSON 2.0 对象。" }
+          },
+          "required": ["card_json"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "send_feishu_card",
+        "description": "把卡片真实发送到飞书群/用户。对外动作，必须 confirm=true 才执行；未配置凭证时返回 Generated 并跳过。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "card_json": { "type": "object", "description": "要发送的 Card JSON 2.0。" },
+            "chat_id": { "type": "string", "description": "目标 chat_id。" },
+            "confirm": { "type": "boolean", "description": "显式授权发送。false 则拒绝并提示需确认。" }
+          },
+          "required": ["card_json", "chat_id", "confirm"]
+        }
+      }
+    }
+  ]
+}

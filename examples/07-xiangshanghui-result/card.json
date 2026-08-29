@@ -1,0 +1,61 @@
+{
+  "schema": "2.0",
+  "config": {
+    "update_multi": true,
+    "width_mode": "fill",
+    "enable_forward": true
+  },
+  "header": {
+    "title": {
+      "tag": "plain_text",
+      "content": "先锋大赛"
+    },
+    "template": "grey"
+  },
+  "body": {
+    "direction": "vertical",
+    "padding": "12px 12px 12px 12px",
+    "elements": [
+      {
+        "tag": "markdown",
+        "content": "🏆 **恭喜晋级的选手**",
+        "text_align": "left"
+      },
+      {
+        "tag": "markdown",
+        "content": "谁进入了下一阶段？",
+        "text_align": "left"
+      },
+      {
+        "tag": "markdown",
+        "content": "🏆 恭喜晋级的选手",
+        "text_align": "left"
+      },
+      {
+        "tag": "markdown",
+        "content": "📅 9月10日",
+        "text_align": "left"
+      },
+      {
+        "tag": "hr"
+      },
+      {
+        "tag": "button",
+        "text": {
+          "tag": "plain_text",
+          "content": "查看详情"
+        },
+        "type": "primary",
+        "width": "fill",
+        "size": "medium",
+        "behaviors": [
+          {
+            "type": "open_url",
+            "default_url": "https://example.com/finalists"
+          }
+        ],
+        "element_id": "cta_8"
+      }
+    ]
+  }
+}

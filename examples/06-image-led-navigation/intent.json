@@ -1,0 +1,38 @@
+{
+  "intent": {
+    "primary_intent": "training",
+    "primary_question": "什么时候上什么课？",
+    "primary_action": "预约直播",
+    "primary_attention_anchor": "培训 · 15:00-16:00",
+    "secondary_attention_anchor": [
+      "15:00-16:00",
+      "14:00-15:00"
+    ],
+    "recommended_layout": "training_detail",
+    "recommended_interactions": [
+      "预约直播",
+      "查看课程日历"
+    ],
+    "confidence": 0.9
+  },
+  "render_mode": {
+    "render_mode": "image_led_navigation",
+    "cta_mode": "multi",
+    "image_required": true,
+    "reason": "图片承担课程/多入口概括，正文极少，按钮承担导航——采用 image_led_navigation。"
+  },
+  "image_intent": {
+    "image_mode": "required",
+    "image_role": "schedule_overview",
+    "reason": "存在多个并列模块 / 排期 / 多入口，图片比纯文字更利于扫读与分组，触发信息型图片。",
+    "text_to_image_ratio": "30_70"
+  },
+  "attention": {
+    "primary_anchor": "培训 · 15:00-16:00",
+    "secondary_anchors": [
+      "15:00-16:00",
+      "14:00-15:00"
+    ],
+    "supporting": []
+  }
+}

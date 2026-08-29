@@ -1,0 +1,23 @@
+{
+  "mobile_first": true,
+  "readingOrder": [
+    "header",
+    "primary_anchor",
+    "critical_time",
+    "primary_content",
+    "primary_cta",
+    "secondary_info"
+  ],
+  "columnStrategy": "single",
+  "primaryAnchorPosition": "top",
+  "primaryCTAPlacement": "after_primary_content",
+  "secondaryCTAStyle": "stacked",
+  "maxSecondaryCTAPerRow": 1,
+  "imageMode": "none",
+  "imageReadableWithoutZoom": true,
+  "criticalFactsAboveFold": [
+    "9月4日截止",
+    "提交作品"
+  ],
+  "warnings": []
+}

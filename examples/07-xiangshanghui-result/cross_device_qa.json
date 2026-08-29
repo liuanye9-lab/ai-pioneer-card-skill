@@ -1,0 +1,19 @@
+{
+  "mobile": {
+    "pass": true,
+    "issues": []
+  },
+  "ios": {
+    "pass": true,
+    "issues": []
+  },
+  "android": {
+    "pass": true,
+    "issues": []
+  },
+  "desktop": {
+    "pass": true,
+    "issues": []
+  },
+  "overallPass": true
+}
