@@ -5,7 +5,7 @@ import { compile } from "../core/pipeline.js";
 import { writeBundle } from "../output/bundle-writer.js";
 import { FeishuCardAdapter } from "../feishu/cardkit-client.js";
 import { generateImage } from "../design/image-generator.js";
-import type { RawInput, CompileResult } from "../core/types.js";
+import type { RawInput, CompileResult, BrandThemeInput } from "../core/types.js";
 
 /**
  * Doubao Agent ↔ Skill adapter.
@@ -40,12 +40,37 @@ const OUTPUTS_DIR = join(PROJECT_ROOT, "outputs");
 export interface GenerateArgs {
   copy: string;
   brand?: string;
+  brand_theme?: BrandThemeInput;
   slug?: string;
   want_send?: boolean;
   confirm_send?: boolean;
   write_bundle?: boolean;
   /** Try to produce a REAL image (generate → upload → img_key) before render. */
   with_image?: boolean;
+}
+
+export type CardKitTransport = "auto" | "open_api" | "lark_cli";
+
+export interface CreateDraftArgs extends GenerateArgs {
+  /** HTTPS image URL returned by the host image model during a delegated run. */
+  generated_image_url?: string;
+  /** Prefer app credentials or the locally authenticated Feishu CLI. */
+  transport?: CardKitTransport;
+  /** Fail instead of silently creating a text-only draft when an image was planned. */
+  require_planned_image?: boolean;
+}
+
+export interface CardKitDraftResult extends Omit<AgentGenerateResult, "status"> {
+  status: AgentGenerateResult["status"] | "needs_image" | "created" | "failed";
+  cardkit?: {
+    created: boolean;
+    card_id?: string;
+    transport: Exclude<CardKitTransport, "auto">;
+    editable_via_api: boolean;
+    expires_in_days?: number;
+    send_limit?: number;
+    message: string;
+  };
 }
 
 export interface AgentGenerateResult {
@@ -112,6 +137,7 @@ export function generateFeishuCard(args: GenerateArgs, extra?: { heroImageKey?: 
   const input: RawInput = {
     copy: args.copy,
     brandName: args.brand,
+    brandTheme: args.brand_theme,
     slug: args.slug,
     wantSend: args.want_send,
     confirmSend: args.confirm_send,
@@ -181,7 +207,7 @@ export function generateFeishuCard(args: GenerateArgs, extra?: { heroImageKey?: 
 export async function generateFeishuCardWithImage(args: GenerateArgs): Promise<AgentGenerateResult> {
   // First pass (offline) to get the plan + style; also handles preflight/blocked.
   const first = compile(
-    { copy: args.copy, brandName: args.brand, slug: args.slug, wantSend: args.want_send, confirmSend: args.confirm_send },
+    { copy: args.copy, brandName: args.brand, brandTheme: args.brand_theme, slug: args.slug, wantSend: args.want_send, confirmSend: args.confirm_send },
     { brandsDir: BRANDS_DIR },
   );
   if (!first.preflight.proceed || !first.imagePlan) {
@@ -219,6 +245,146 @@ export async function generateFeishuCardWithImage(args: GenerateArgs): Promise<A
   imageStatus.produced = true;
   imageStatus.message = "已生成并嵌入真实图片。";
   return generateFeishuCard(args, { heroImageKey: up.imageKey, imageStatus });
+}
+
+function resolveTransport(requested: CardKitTransport | undefined, adapter: FeishuCardAdapter): Exclude<CardKitTransport, "auto"> {
+  if (requested && requested !== "auto") return requested;
+  return adapter.configured ? "open_api" : "lark_cli";
+}
+
+/**
+ * One-click draft workflow:
+ * copy → facts/attention/template → image model → Feishu image upload →
+ * Card JSON → CardKit entity. Creating a draft does not send it to a chat.
+ *
+ * In delegate mode the first call returns `needs_image` with a finished prompt.
+ * The host renders it and calls this tool again with `generated_image_url`.
+ */
+export async function createCardkitDraft(args: CreateDraftArgs): Promise<CardKitDraftResult> {
+  const first = compile(
+    { copy: args.copy, brandName: args.brand, brandTheme: args.brand_theme, slug: args.slug },
+    { brandsDir: BRANDS_DIR },
+  );
+  if (!first.preflight.proceed) return generateFeishuCard(args);
+
+  const adapter = new FeishuCardAdapter();
+  const transport = resolveTransport(args.transport, adapter);
+  let heroImageKey: string | undefined;
+  let imageStatus: AgentGenerateResult["image_status"] | undefined;
+
+  if (first.imagePlan && args.with_image !== false) {
+    let imageUrl = args.generated_image_url;
+    let imageBytes: Uint8Array | undefined;
+    let generatedMode = "host";
+
+    if (!imageUrl) {
+      const generated = await generateImage(first.imagePlan, first.style, { env: process.env });
+      generatedMode = generated.mode;
+      imageStatus = {
+        attempted: true,
+        mode: generated.mode,
+        produced: false,
+        delegate_prompt: generated.mode === "delegate" ? generated.prompt : undefined,
+        delegate_size: generated.mode === "delegate" ? generated.size : undefined,
+        message: generated.message,
+      };
+      if (!generated.ok) {
+        if (generated.mode === "delegate") {
+          const base = generateFeishuCard(args, { imageStatus });
+          return {
+            ...base,
+            status: "needs_image",
+            message: "请用宿主生图模型按 delegate_prompt 生成图片，再把 HTTPS 图片地址作为 generated_image_url 重新调用。",
+            cardkit: { created: false, transport, editable_via_api: true, message: "waiting for generated image" },
+          };
+        }
+        if (args.require_planned_image !== false) {
+          return {
+            ...generateFeishuCard(args, { imageStatus }),
+            status: "failed",
+            message: `生图失败，未创建低质量草稿：${generated.message}`,
+            cardkit: { created: false, transport, editable_via_api: true, message: generated.message },
+          };
+        }
+      } else {
+        imageUrl = generated.url;
+        imageBytes = generated.bytes;
+      }
+    }
+
+    if (imageUrl || imageBytes) {
+      const uploaded =
+        transport === "lark_cli"
+          ? imageUrl
+            ? await adapter.uploadImageFromUrlViaCli(imageUrl)
+            : await adapter.uploadImageBytesViaCli(imageBytes ?? new Uint8Array(), "generated.png")
+          : imageUrl
+            ? await adapter.uploadImageFromUrl(imageUrl)
+            : await adapter.uploadImageBytes(imageBytes ?? new Uint8Array(), "generated.png");
+      imageStatus = {
+        attempted: true,
+        mode: generatedMode,
+        produced: uploaded.ok,
+        message: uploaded.ok ? "图片已生成并上传飞书。" : uploaded.message,
+      };
+      if (!uploaded.ok || !uploaded.imageKey) {
+        return {
+          ...generateFeishuCard(args, { imageStatus }),
+          status: "failed",
+          message: `图片上传失败，未创建低质量草稿：${uploaded.message}`,
+          cardkit: { created: false, transport, editable_via_api: true, message: uploaded.message },
+        };
+      }
+      heroImageKey = uploaded.imageKey;
+    }
+  }
+
+  const generated = generateFeishuCard(args, { heroImageKey, imageStatus });
+  if (generated.status !== "generated" || !generated.card_json) return generated;
+  if (generated.summary?.hard_fail) {
+    return {
+      ...generated,
+      status: "failed",
+      message: "卡片 QA 存在 hard fail，已阻止创建 CardKit 草稿。",
+      cardkit: { created: false, transport, editable_via_api: true, message: "QA hard fail" },
+    };
+  }
+
+  const created =
+    transport === "lark_cli"
+      ? await adapter.createCardViaCli(generated.card_json)
+      : await adapter.createCard(generated.card_json);
+  return {
+    ...generated,
+    status: created.ok ? "created" : "failed",
+    message: created.ok
+      ? "卡片已生成并创建为 CardKit 实体，可使用 card_id 继续更新；尚未发送到任何群。"
+      : `卡片已生成，但 CardKit 创建失败：${created.message}`,
+    cardkit: {
+      created: created.ok,
+      card_id: created.cardId,
+      transport,
+      editable_via_api: true,
+      expires_in_days: created.ok ? 14 : undefined,
+      send_limit: created.ok ? 1 : undefined,
+      message: created.message,
+    },
+  };
+}
+
+export async function updateCardkitCard(args: {
+  card_id: string;
+  card_json: any;
+  sequence?: number;
+  transport?: CardKitTransport;
+}): Promise<{ ok: boolean; status: string; message: string }> {
+  const adapter = new FeishuCardAdapter();
+  const transport = resolveTransport(args.transport, adapter);
+  const result =
+    transport === "lark_cli"
+      ? await adapter.updateCardViaCli(args.card_id, args.card_json, args.sequence ?? 1)
+      : await adapter.updateCard(args.card_id, args.card_json, args.sequence ?? 1);
+  return { ok: result.ok, status: result.status, message: result.message };
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +432,10 @@ export async function dispatchTool(name: string, args: any): Promise<any> {
   switch (name) {
     case "generate_feishu_card":
       return args?.with_image ? generateFeishuCardWithImage(args) : generateFeishuCard(args);
+    case "create_cardkit_draft":
+      return createCardkitDraft(args);
+    case "update_cardkit_card":
+      return updateCardkitCard(args);
     case "validate_feishu_card":
       return validateFeishuCard(args);
     case "send_feishu_card":

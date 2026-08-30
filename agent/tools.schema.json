@@ -16,6 +16,18 @@
               "type": "string",
               "description": "可选。品牌名（如“象上汇”）。会复用 brands/<slug>/style.md，无缓存则用默认视觉，绝不凭名字猜。"
             },
+            "brand_theme": {
+              "type": "object",
+              "description": "可选。由用户或官方品牌资料确认的主题令牌；不得凭品牌名编造。",
+              "properties": {
+                "identity": { "type": "string" },
+                "primaryColor": { "type": "string", "description": "#RRGGBB" },
+                "accentColor": { "type": "string", "description": "#RRGGBB" },
+                "surfaceColor": { "type": "string", "description": "#RRGGBB" },
+                "visualDirection": { "type": "string" },
+                "keywords": { "type": "array", "items": { "type": "string" }, "maxItems": 8 }
+              }
+            },
             "slug": {
               "type": "string",
               "description": "可选。输出目录名。"
@@ -31,9 +43,92 @@
             "write_bundle": {
               "type": "boolean",
               "description": "可选。是否把完整产物写入 outputs/ 目录（card.json/style.md/qa_report.json 等）。默认 false。"
+            },
+            "with_image": {
+              "type": "boolean",
+              "description": "可选。为 true 时执行真实生图与飞书图片上传；无运行时图像端点时返回 delegate_prompt 交给宿主生图。"
             }
           },
           "required": ["copy"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "create_cardkit_draft",
+        "description": "一键把文案变成 CardKit 草稿：事实提取、信息分层、模板/品牌视觉、生图、上传图片、Card JSON QA、创建 CardKit 实体。不会发群。宿主生图模式下首次返回 needs_image，生成图片后携 generated_image_url 再调用。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "copy": {
+              "type": "string",
+              "description": "用户提供的原始文案，唯一事实源。"
+            },
+            "brand": {
+              "type": "string",
+              "description": "可选品牌名；只复用已验证的品牌资料，不凭名称猜视觉。"
+            },
+            "brand_theme": {
+              "type": "object",
+              "description": "可选。来自用户或官方资料的品牌色与视觉方向。",
+              "properties": {
+                "identity": { "type": "string" },
+                "primaryColor": { "type": "string", "description": "#RRGGBB" },
+                "accentColor": { "type": "string", "description": "#RRGGBB" },
+                "surfaceColor": { "type": "string", "description": "#RRGGBB" },
+                "visualDirection": { "type": "string" },
+                "keywords": { "type": "array", "items": { "type": "string" }, "maxItems": 8 }
+              }
+            },
+            "generated_image_url": {
+              "type": "string",
+              "description": "可选。宿主生图模型返回的 HTTPS 图片地址。首次 needs_image 后将它传回即可继续。"
+            },
+            "with_image": {
+              "type": "boolean",
+              "description": "默认 true。文案适合图文卡时必须完成真实生图和上传。"
+            },
+            "require_planned_image": {
+              "type": "boolean",
+              "description": "默认 true。已规划图片但生成失败时阻止创建低质量草稿。"
+            },
+            "transport": {
+              "type": "string",
+              "enum": ["auto", "open_api", "lark_cli"],
+              "description": "CardKit 传输方式。豆包工具服务推荐 open_api；本机自动化推荐 lark_cli。"
+            },
+            "write_bundle": {
+              "type": "boolean",
+              "description": "可选。写出完整可审核产物。"
+            }
+          },
+          "required": ["copy"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "update_cardkit_card",
+        "description": "用修改后的 Card JSON 更新已有 CardKit 实体。适用于用户完成自定义编辑后按 card_id 保存。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "card_id": { "type": "string", "description": "create_cardkit_draft 返回的 CardKit card_id。" },
+            "card_json": { "type": "object", "description": "通过 QA 的完整 Card JSON 2.0。" },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "更新序号，默认 1；同一卡片每次更新必须严格递增。"
+            },
+            "transport": {
+              "type": "string",
+              "enum": ["auto", "open_api", "lark_cli"],
+              "description": "更新传输方式。"
+            }
+          },
+          "required": ["card_id", "card_json"]
         }
       }
     },

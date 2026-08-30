@@ -45,19 +45,26 @@
 
 有两种嵌法，按你平台开通的能力二选一：
 
-### 方式 A：Prompt 内嵌（零依赖，先跑起来）
+### 方式 A：Prompt 内嵌（仅规则预览，不能复现完整效果）
 创建后进入伙伴「编辑 / 高级设置 / 人设」，把 [system-prompt.md](./system-prompt.md) 全文贴进去覆盖默认人设。
-此时智能体已经具备本 Skill 的全部规则（事实锁定、手机优先、意图判断、兜底、运营话术），可直接对话产出卡片文案 + Card JSON 结构。
+此方式只注入规则，**不会执行仓库 TypeScript，也不会真实生图、上传图片或创建 CardKit 实体**。它只能用于验证触发和回复风格，效果必然弱于本地完整管线。
 
-### 方式 B：工具/插件内嵌（可校验、可真发）
+### 方式 B：工具/插件内嵌（生产必选）
 如果你的豆包工作伙伴支持「插件 / 工具 / 自定义 API（函数调用）」：
-1. 在「工具/插件」里按 [tools.schema.json](./tools.schema.json) 注册 3 个函数：
-   - `generate_feishu_card`（核心：文案→Card JSON + 摘要 + 运营话术 + 兜底信号）
+1. 在「工具/插件」里按 [tools.schema.json](./tools.schema.json) 注册 5 个函数：
+   - `create_cardkit_draft`（默认：文案→生图→上传→CardKit `card_id`）
+   - `update_cardkit_card`（自定义编辑后更新卡片实体）
+   - `generate_feishu_card`（仅预览：Card JSON + 摘要 + 运营话术）
    - `validate_feishu_card`（离线结构校验）
    - `send_feishu_card`（真实发送，需 confirm）
 2. 后端把函数调用转发到本项目：`dispatchTool(name, args)`（见 `src/agent/tool-adapter.ts`）。
    最小服务示例见 [tool-server.ts](../scripts/tool-server.ts)（`npx tsx scripts/tool-server.ts`，POST /tool）。
-3. 配置 `.env`（FEISHU_APP_ID/SECRET…）后，`send_feishu_card` 才会从 Generated 进入真实发送。
+3. 配置 `.env`：
+   - `IMAGE_API_URL` / `IMAGE_API_KEY`：服务端直接调用生图模型；未配置时由豆包宿主按 `delegate_prompt` 生图并二次回传 URL。
+   - `FEISHU_APP_ID` / `FEISHU_APP_SECRET`：上传图片、创建/更新 CardKit 与发送。
+4. `create_cardkit_draft` 只创建可通过 API 更新的卡片实体，不会发群；`send_feishu_card` 才是对外发送，仍需确认。
+
+> 如果当前豆包工作伙伴没有“自定义 API/函数工具”入口，命名 Skill 无法单独完成这条链路。需要先把 `tool-server.ts` 部署为豆包可访问的 HTTPS 服务，再接入工具；不要把 Prompt-only 结果当作生产效果。
 
 ---
 

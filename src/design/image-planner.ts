@@ -135,7 +135,7 @@ export function buildImagePlan(input: ImagePlanInput): ImagePlan | undefined {
     hero_subtitle: heroSubtitle,
     modules: cappedModules,
     critical_facts_repeated_in_card: facts,
-    prompt: buildPrompt(style, heroTitle, heroSubtitle, cappedModules, aspect, nativeTextFallback),
+    prompt: buildPrompt(style, intent, imageIntent.image_role, heroTitle, heroSubtitle, cappedModules, aspect, nativeTextFallback),
     negative_prompt:
       "no cyberpunk, no neon, no gaming UI, no cheap tech blue, no excessive glow, no random AI art, no poster wall, no tiny unreadable text, no dense paragraphs",
     variants,
@@ -159,6 +159,8 @@ function deriveHeroSubtitle(intent: CardIntentResult, _sot: SourceOfTruth): stri
 
 function buildPrompt(
   style: StyleProfile,
+  intent: CardIntentResult,
+  imageRole: string,
   heroTitle: string,
   heroSubtitle: string | undefined,
   modules: ImageModule[],
@@ -167,6 +169,7 @@ function buildPrompt(
 ): string {
   const palette = `${style.colors.surface} background, ${style.colors.primaryBrand} accents, low saturation`;
   const moduleDesc = modules.map((m) => `- ${m.title}`).join("\\n");
+  const composition = visualComposition(intent.primary_intent, imageRole, modules.length);
   const textStrategy = nativeTextFallback
     ? "IMPORTANT: render ONLY abstract visual modules, dividers and iconography; do NOT bake Chinese text into the image. Chinese labels are overlaid by native Feishu card text."
     : "Render clear, large, legible module titles.";
@@ -176,6 +179,7 @@ function buildPrompt(
     `Style: ${style.visualDirection}. Keywords: ${style.keywords.slice(0, 6).join(", ")}.`,
     `Palette: ${palette}. Generous whitespace, clear modular grouping, soft gradient, refined and product-native.`,
     `Concept: "${heroTitle}"${heroSubtitle ? ` — ${heroSubtitle}` : ""}.`,
+    `Composition preset: ${composition}`,
     modules.length ? `Modules to visually separate:\\n${moduleDesc}` : "",
     `Reserve a lower safe zone for native text/CTA overlay.`,
     textStrategy,
@@ -183,4 +187,23 @@ function buildPrompt(
   ]
     .filter(Boolean)
     .join("\\n");
+}
+
+function visualComposition(intent: CardIntentResult["primary_intent"], role: string, moduleCount: number): string {
+  if (role === "schedule_overview") {
+    return `editorial schedule overview with ${Math.max(moduleCount, 2)} clearly separated visual lanes, calendar rhythm, restrained pictograms, strong top-to-bottom reading order`;
+  }
+  if (role === "scene_navigation" || role === "module_summary") {
+    return `modular navigation board with ${Math.max(moduleCount, 3)} distinct scene tiles, consistent icon system, clear grouping and generous gutters`;
+  }
+  if (intent === "result" || intent === "award") {
+    return "premium recognition scene with a single sculptural trophy or medal focal point, subtle celebratory paper details, calm editorial lighting";
+  }
+  if (intent === "training") {
+    return "modern learning workspace with a focused screen, notebook and modular lesson objects, clean editorial product photography";
+  }
+  if (intent === "case_showcase") {
+    return "polished product case-study composition showing an abstract workflow from input to outcome, three clear visual stages";
+  }
+  return "confident launch-key-visual with one central forward-moving form, precise grid, large quiet negative space, premium editorial lighting";
 }

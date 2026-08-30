@@ -8,19 +8,21 @@
 | [doubao-setup.md](./doubao-setup.md) | **照着填**：在豆包创建工作伙伴弹窗里逐字段怎么配 + 两种嵌入方式 |
 | [agent.manifest.json](./agent.manifest.json) | 智能体清单：身份、开场白、预设问题、能力、护栏、内嵌 Skill 声明 |
 | [system-prompt.md](./system-prompt.md) | 智能体人设与操作规则（固定顺序：发现→完成→处理异常→补充资料） |
-| [tools.schema.json](./tools.schema.json) | Function-calling 工具声明（generate/validate/send） |
+| [tools.schema.json](./tools.schema.json) | Function-calling 工具声明（draft/update/generate/validate/send） |
 | `../src/agent/agent-runtime.ts` | **可对话的 Agent 运行时**：会话状态 + 工具调用循环 + 人设回复 + 发送确认 |
 | `../src/agent/tool-adapter.ts` | 运行时桥：把工具调用接到编译管线 |
 | `../scripts/tool-server.ts` | 最小 HTTP 工具服务（POST /tool），供平台函数调用转发 |
 
-## 三个工具（嵌入的 Skill 能力）
-1. **generate_feishu_card**（核心）— 文案 → 事实可信、手机优先的 Card JSON 2.0 + 摘要 + 兜底信号。
-2. **validate_feishu_card** — 离线结构校验。
-3. **send_feishu_card** — 真实发送，必须 `confirm=true`；无凭证时停在 Generated。
+## 五个工具（嵌入的 Skill 能力）
+1. **create_cardkit_draft**（生产入口）— 文案 → 信息分层 → 生图/上传 → QA → CardKit `card_id`。
+2. **update_cardkit_card** — 按 `card_id` 保存后续自定义修改。
+3. **generate_feishu_card** — 仅生成预览与 Card JSON。
+4. **validate_feishu_card** — 离线结构校验。
+5. **send_feishu_card** — 真实发送，必须 `confirm=true`；无凭证时停在 Generated。
 
 ## 智能体如何用 Skill（对齐企业级四层）
 - **触发层**：manifest 的能力/场景 + system-prompt 的“能做/不做”，让智能体被正确命中、越界即转其他 Skill。
-- **执行层**：`generate_feishu_card` 调 22 步编译管线（事实锁定→标准化→去重→意图→手机布局→QA）。
+- **执行层**：`create_cardkit_draft` 调编译、生图、上传、QA 和 CardKit 创建链路。
 - **兜底层**：适配器透传 `preflight` 的越界拒绝 / 缺参追问 / 低置信标注 / 风险确认，智能体如实转述而非硬编。
 - **参考层**：PRD/SPEC/DESIGN/schemas/brands/templates 按需加载，不触发不加载。
 
@@ -39,6 +41,6 @@ npm run agent:server         # 起 HTTP 工具服务 (POST /tool)，供豆包函
 1. 伙伴·小队 → ＋创建 → 团队使用；描述框粘 setup 文档第 1 步整段。
 2. 加入你的活动运营群；主动工作=开；每日回顾=开（时间贴近截止提醒）。
 3. 嵌入 Skill：
-   - **方式 A（零依赖）**：把 [system-prompt.md](./system-prompt.md) 贴进「人设/Prompt」。
-   - **方式 B（可校验/可真发）**：按 [tools.schema.json](./tools.schema.json) 注册 3 个函数，后端用 `dispatchTool()` 或起 `scripts/tool-server.ts` 承接。
+   - **方式 A（仅规则预览）**：把 [system-prompt.md](./system-prompt.md) 贴进「人设/Prompt」，不会真实执行代码或创建 CardKit。
+   - **方式 B（生产必选）**：按 [tools.schema.json](./tools.schema.json) 注册 5 个函数，后端用 `dispatchTool()` 或起 `scripts/tool-server.ts` 承接。
 4. 配 `.env`（FEISHU_APP_ID/SECRET…）后，`send_feishu_card` 才会从 Generated 进入真实发送。

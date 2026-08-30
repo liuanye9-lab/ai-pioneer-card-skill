@@ -2,6 +2,15 @@
 
 本次升级将“手机端适配”从 DESIGN 中的一般原则提升为全链路 P0 能力。
 
+## 2026-08-31 - Executable CardKit Draft Pipeline
+
+- Added `create_cardkit_draft`: copy -> attention hierarchy -> template/brand -> image generation -> Feishu image upload -> QA -> CardKit `card_id`.
+- Added host-image delegation (`needs_image` -> `generated_image_url`) so missing image infrastructure cannot silently produce a low-quality text-only draft.
+- Added `lark_cli` transport for image upload, CardKit entity creation, and updates.
+- Added `update_cardkit_card`; group sending remains a separate confirmed action.
+- Added verified `brand_theme` overrides and intent-specific visual composition prompts.
+- Clarified that a Prompt-only named Skill cannot execute the repository runtime.
+
 ## PRD
 - Mobile First 成为最高优先级产品原则
 - 新增 FR-31 ~ FR-38

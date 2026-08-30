@@ -7,6 +7,8 @@ import type {
   RenderModeResult,
   ImageIntentResult,
   PreflightResult,
+  StyleProfile,
+  BrandThemeInput,
 } from "./types.js";
 import { DEFAULT_DEVICE_PROFILE, MAX_AUTO_REWRITES } from "./constants.js";
 import { resetIdCounter } from "./errors.js";
@@ -70,6 +72,25 @@ function slugFromInput(input: RawInput): string {
   return `${base}-${stamp}`.replace(/^-+/, "");
 }
 
+function applyBrandTheme(style: StyleProfile, theme?: BrandThemeInput): StyleProfile {
+  if (!theme) return style;
+  const hex = (value: string | undefined, fallback: string) =>
+    value && /^#[0-9a-f]{6}$/i.test(value) ? value.toUpperCase() : fallback;
+  return {
+    ...style,
+    brandIdentity: theme.identity?.trim() || style.brandIdentity,
+    visualDirection: theme.visualDirection?.trim() || style.visualDirection,
+    keywords: theme.keywords?.map((x) => x.trim()).filter(Boolean).slice(0, 8) || style.keywords,
+    colors: {
+      ...style.colors,
+      primaryBrand: hex(theme.primaryColor, style.colors.primaryBrand),
+      accent: hex(theme.accentColor, style.colors.accent),
+      surface: hex(theme.surfaceColor, style.colors.surface),
+    },
+    isBrandResolved: true,
+  };
+}
+
 export function compile(input: RawInput, options: PipelineOptions): CompileResult {
   resetIdCounter();
   const env = options.env ?? process.env;
@@ -100,7 +121,7 @@ export function compile(input: RawInput, options: PipelineOptions): CompileResul
 
   // 11: Brand / Style.
   const styleResolution = resolveStyle({ brandName: input.brandName, brandsDir: options.brandsDir });
-  const style = styleResolution.style;
+  const style = applyBrandTheme(styleResolution.style, input.brandTheme);
 
   // 12: Information Architecture.
   const structure = buildInformationArchitecture({ sot, intent, renderMode, attention, style });

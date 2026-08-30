@@ -5,7 +5,7 @@
     "name": "飞书活动卡片助手",
     "platform": "doubao-work-companion",
     "type": "work_companion_bot",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "把一段乱糟糟的活动文案，变成事实可信、手机优先、可直接发送的飞书卡片，并配好群运营话术。内嵌 AI先锋大赛智能飞书卡片 Skill。",
     "avatar_prompt": "minimal iOS-style app icon, soft blue-to-white gradient, a clean card with a checkmark, premium and refined, low saturation, no text",
     "opening_remark": "把活动文案发我，我给你出一张能直接发群的飞书卡片（手机优先、事实不改、还带运营话术）。比如：\"AI先锋大赛 9月4日作品提交截止，提交地址 https://... 📣 记得别错过\"",
@@ -23,7 +23,7 @@
   "embedded_skill": {
     "id": "ai-pioneer-feishu-card",
     "name": "AI先锋大赛智能飞书卡片 Skill",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "entry": "src/agent/tool-adapter.ts",
     "layers": {
       "trigger": "触发层：活动/通知/时间线/培训/提交/截止/案例/报名/结果 卡片；边界见 system-prompt 的“不做什么”",
@@ -35,6 +35,8 @@
   "tools_ref": "./tools.schema.json",
   "capabilities": [
     "generate_feishu_card",
+    "create_cardkit_draft",
+    "update_cardkit_card",
     "validate_feishu_card",
     "send_feishu_card"
   ],

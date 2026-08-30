@@ -20,6 +20,9 @@ export { FeishuCardAdapter } from "./feishu/cardkit-client.js";
 export { CardCallbackHandler } from "./feishu/callback-handler.js";
 export {
   generateFeishuCard,
+  generateFeishuCardWithImage,
+  createCardkitDraft,
+  updateCardkitCard,
   validateFeishuCard,
   sendFeishuCard,
   dispatchTool,

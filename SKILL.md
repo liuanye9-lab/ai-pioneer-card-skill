@@ -2,13 +2,13 @@
 name: "ai-pioneer-feishu-card"
 description: "把一段原始活动文案编译成事实可信、手机优先、可直接发送的飞书卡片（Card JSON 2.0），并附群运营话术与 QA 报告。用户发来活动通知/时间线/培训预告/作品提交/截止提醒/案例/报名/结果公布/奖项/倒计时/操作指南等需要发飞书群的文案，或明确说“做张卡片/出张卡/发群卡片”时使用。事实不改（活动名/日期/时间/截止/URL/人名/数字/奖项/规则原样保留；0809/8.9→8月9日；📣不写成【喇叭】），无真实链接绝不编造，关键事实落原生文字或按钮，发送前须确认。不做长文/周报/纯做图/开放问答/建日程/改多维表——越界转对应助手。"
 description_zh: "把一段原始活动文案编译成事实可信、手机优先、可直接发送的飞书卡片（Card JSON 2.0），并附群运营话术与 QA 报告。触发：活动通知/时间线/培训/作品提交/截止提醒/案例/报名/结果/奖项/倒计时/指南等飞书群卡片需求。硬规则：事实不改、无链接不编造、关键事实进原生文字或按钮、发送前确认。越界（长文/周报/纯做图/问答/建日程/改多维表）转对应助手。"
-version: "2.0"
+version: "3.0"
 user-invocable: true
 ---
 
 # SKILL — AI先锋大赛智能飞书卡片
 
-**Version**: v2.0（企业级四层结构）
+**Version**: v3.0（可执行 CardKit 草稿链路）
 **Skill Name**: `ai-pioneer-feishu-card`
 **结构**: 触发层 → 执行层 → 兜底层 → 参考层（固定顺序：发现 → 完成 → 处理异常 → 补充资料）
 
@@ -76,10 +76,15 @@ Parse → Source of Truth → Fact Lock → Normalize(日期/Emoji) → Semantic
 - 手机：默认单列；Primary CTA 独占；短标签≤2 并排，否则纵向；禁 3+ 一排。
 
 ## 工具调用逻辑
-- 生成：`generate_feishu_card`（纯离线，无 LLM 调用）。
+- 默认一键制卡：`create_cardkit_draft`（文案→信息分层→模板/品牌→生图→上传→QA→CardKit `card_id`）。
+- 宿主生图：首次返回 `needs_image` 时，必须用 `delegate_prompt` / `delegate_size` 调宿主生图，再携 `generated_image_url` 二次调用；禁止跳过图片后冒充完成。
+- 仅预览：`generate_feishu_card`（纯离线；`with_image=true` 时可接运行时图像端点）。
+- 自定义编辑后保存：`update_cardkit_card`（按 `card_id` 更新 CardKit 实体）。
 - 校验：`validate_feishu_card`（Card JSON 2.0 结构校验）。
 - 发送：`send_feishu_card`（对外动作，需 confirm；无凭证停在 Generated）。
 - 回调：`scripts/callback-server.ts`（POST /api/feishu/card/callback）。
+
+> 运行边界：仅安装本 Markdown Skill 不会执行仓库 TypeScript。要获得真实图片、`img_key` 和 `card_id`，宿主必须注册 `agent/tools.schema.json` 中的工具并连接可访问的 `scripts/tool-server.ts`。否则只能输出预览，不得声称已创建 CardKit 卡片。
 
 ## 输出格式
 `outputs/{slug}/`：source_of_truth.json / intent.json / render_plan.json / mobile_layout.json / style.md / card_content.md / card.json / card.preview.json / operation_copy.md / qa_report.json / cross_device_qa.json / **preflight.json** / publish_status.json / assets/。
@@ -140,3 +145,4 @@ Parse → Source of Truth → Fact Lock → Normalize(日期/Emoji) → Semantic
 3. 关键事实（截止/日期/入口 URL）必须在原生文字或 CTA 承接，不能只在图片。
 4. 发送是对外动作，需显式确认；未真实测试不得声称“已打通飞书”。
 5. Secret 仅从环境读取，绝不写入卡片/日志/回复。
+6. 创建 CardKit 草稿不等于已发送；`card_id` 表示可通过 API 继续更新，不得虚构 CardKit 可视化编辑器链接。卡片实体有效期 14 天且仅可发送一次。

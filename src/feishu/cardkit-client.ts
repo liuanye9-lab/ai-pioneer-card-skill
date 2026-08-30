@@ -1,5 +1,12 @@
 import { loadCredentials, getTenantAccessToken, type FeishuAuthState } from "./auth.js";
 import { validateCardJson, type CardValidationResult } from "../renderer/card-validator.js";
+import { execFile } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 /**
  * Feishu Card Adapter (SPEC §16). Implements createCard / sendCard /
@@ -19,6 +26,7 @@ export interface CreateCardResult {
   ok: boolean;
   status: "Generated" | "Configured" | "Tested";
   cardId?: string;
+  transport?: "open_api" | "lark_cli";
   message: string;
 }
 
@@ -45,6 +53,34 @@ export interface UploadImageResult {
   status: "Generated" | "Configured" | "Tested";
   imageKey?: string;
   message: string;
+}
+
+function findStringByKey(value: unknown, keys: Set<string>): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (keys.has(key) && typeof child === "string" && child.length > 0) return child;
+    const nested = findStringByKey(child, keys);
+    if (nested) return nested;
+  }
+  return undefined;
+}
+
+async function runLarkCli(args: string[]): Promise<{ ok: boolean; data?: unknown; message: string }> {
+  try {
+    const { stdout } = await execFileAsync("lark-cli", args, {
+      encoding: "utf8",
+      timeout: 60_000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    const data = JSON.parse(stdout);
+    if ((data as any)?.ok === false || (typeof (data as any)?.code === "number" && (data as any).code !== 0)) {
+      return { ok: false, data, message: (data as any)?.msg ?? "lark-cli API returned an error" };
+    }
+    return { ok: true, data, message: "lark-cli API call succeeded" };
+  } catch (e) {
+    const err = e as { stderr?: string; message?: string };
+    return { ok: false, message: err.stderr?.trim() || err.message || "lark-cli execution failed" };
+  }
 }
 
 export class FeishuCardAdapter {
@@ -102,11 +138,39 @@ export class FeishuCardAdapter {
         ok: true,
         status: "Tested",
         cardId: data.data?.card_id,
+        transport: "open_api",
         message: "card entity created",
       };
     } catch (e) {
       return { ok: false, status: "Configured", message: `network/API error: ${(e as Error).message}` };
     }
+  }
+
+  /** Create a CardKit entity through the locally authenticated Feishu CLI. */
+  async createCardViaCli(cardJson: unknown): Promise<CreateCardResult> {
+    const validation = validateCardJson(cardJson);
+    if (!validation.valid) {
+      return { ok: false, status: "Generated", transport: "lark_cli", message: `INVALID_CARD_SCHEMA: ${validation.errors.join("; ")}` };
+    }
+    const body = JSON.stringify({ type: "card_json", data: JSON.stringify(cardJson) });
+    const result = await runLarkCli([
+      "api",
+      "POST",
+      "/open-apis/cardkit/v1/cards",
+      "--data",
+      body,
+      "--json",
+    ]);
+    const cardId = findStringByKey(result.data, new Set(["card_id", "cardId"]));
+    if (!result.ok || !cardId) {
+      return {
+        ok: false,
+        status: "Configured",
+        transport: "lark_cli",
+        message: result.ok ? "lark-cli response did not contain card_id" : result.message,
+      };
+    }
+    return { ok: true, status: "Tested", cardId, transport: "lark_cli", message: "CardKit entity created via lark-cli" };
   }
 
   /** Send an interactive card message to a chat/user. */
@@ -142,7 +206,7 @@ export class FeishuCardAdapter {
   }
 
   /** Update an existing card entity (dynamic status cards, FR-22). */
-  async updateCard(cardId: string, cardJson: unknown): Promise<UpdateResult> {
+  async updateCard(cardId: string, cardJson: unknown, sequence = 1): Promise<UpdateResult> {
     if (!this.auth.configured || !this.auth.credentials) {
       return { ok: false, status: "Configured", message: this.auth.reason ?? "credentials not configured" };
     }
@@ -154,7 +218,7 @@ export class FeishuCardAdapter {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json; charset=utf-8",
         },
-        body: JSON.stringify({ card: { type: "card_json", data: JSON.stringify(cardJson) } }),
+        body: JSON.stringify({ card: { type: "card_json", data: JSON.stringify(cardJson) }, sequence }),
       });
       const data = (await res.json()) as any;
       if (data.code !== 0) {
@@ -164,6 +228,27 @@ export class FeishuCardAdapter {
     } catch (e) {
       return { ok: false, status: "Configured", message: `network/API error: ${(e as Error).message}` };
     }
+  }
+
+  /** Update an existing CardKit entity through lark-cli. */
+  async updateCardViaCli(cardId: string, cardJson: unknown, sequence = 1): Promise<UpdateResult> {
+    const validation = validateCardJson(cardJson);
+    if (!validation.valid) {
+      return { ok: false, status: "Configured", message: `INVALID_CARD_SCHEMA: ${validation.errors.join("; ")}` };
+    }
+    const result = await runLarkCli([
+      "api",
+      "PUT",
+      `/open-apis/cardkit/v1/cards/${cardId}`,
+      "--data",
+      JSON.stringify({ card: { type: "card_json", data: JSON.stringify(cardJson) }, sequence }),
+      "--json",
+    ]);
+    return {
+      ok: result.ok,
+      status: result.ok ? "Tested" : "Configured",
+      message: result.ok ? "CardKit entity updated via lark-cli" : result.message,
+    };
   }
 
   /**
@@ -211,6 +296,36 @@ export class FeishuCardAdapter {
     }
   }
 
+  /** Upload generated bytes through lark-cli, useful when no app secret is available. */
+  async uploadImageBytesViaCli(bytes: Uint8Array, name = "generated.png"): Promise<UploadImageResult> {
+    const dir = await mkdtemp(join(tmpdir(), "aipc-image-"));
+    const file = join(dir, name.replace(/[^a-zA-Z0-9._-]/g, "_"));
+    try {
+      await writeFile(file, bytes);
+      const result = await runLarkCli([
+        "api",
+        "POST",
+        "/open-apis/im/v1/images",
+        "--data",
+        JSON.stringify({ image_type: "message" }),
+        "--file",
+        `image=${file}`,
+        "--json",
+      ]);
+      const imageKey = findStringByKey(result.data, new Set(["image_key", "img_key", "imageKey"]));
+      if (!result.ok || !imageKey) {
+        return {
+          ok: false,
+          status: "Configured",
+          message: result.ok ? "lark-cli response did not contain image_key" : result.message,
+        };
+      }
+      return { ok: true, status: "Tested", imageKey, message: "image uploaded via lark-cli" };
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+
   /**
    * Fetch a remote image URL (from the generator) and upload it → img_key.
    */
@@ -220,6 +335,22 @@ export class FeishuCardAdapter {
       if (!res.ok) return { ok: false, status: "Generated", message: `image url HTTP ${res.status}` };
       const bytes = new Uint8Array(await res.arrayBuffer());
       return this.uploadImageBytes(bytes, "generated.png");
+    } catch (e) {
+      return { ok: false, status: "Generated", message: `image url fetch error: ${(e as Error).message}` };
+    }
+  }
+
+  async uploadImageFromUrlViaCli(imageUrl: string): Promise<UploadImageResult> {
+    try {
+      const parsed = new URL(imageUrl);
+      if (parsed.protocol !== "https:") {
+        return { ok: false, status: "Generated", message: "generated image URL must use HTTPS" };
+      }
+      const res = await fetch(parsed, { redirect: "follow" });
+      if (!res.ok) return { ok: false, status: "Generated", message: `image url HTTP ${res.status}` };
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.length === 0) return { ok: false, status: "Generated", message: "generated image was empty" };
+      return this.uploadImageBytesViaCli(bytes, "generated.png");
     } catch (e) {
       return { ok: false, status: "Generated", message: `image url fetch error: ${(e as Error).message}` };
     }

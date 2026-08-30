@@ -16,6 +16,17 @@ export interface KnownLink {
   type?: string;
 }
 
+export interface BrandThemeInput {
+  /** Verified brand identity, supplied by the user or an approved brand source. */
+  identity?: string;
+  /** CSS hex colors only; invalid values are ignored. */
+  primaryColor?: string;
+  accentColor?: string;
+  surfaceColor?: string;
+  visualDirection?: string;
+  keywords?: string[];
+}
+
 export interface RawInput {
   /** The raw, un-processed activity copy. The single source of truth. */
   copy: string;
@@ -23,6 +34,8 @@ export interface RawInput {
   userInstruction?: string;
   /** Explicit brand name; triggers brand style resolution. */
   brandName?: string;
+  /** Optional verified brand tokens; never inferred from a name alone. */
+  brandTheme?: BrandThemeInput;
   /** Reference image paths/urls (only used when user explicitly provides). */
   referenceImages?: string[];
   /** Links the user already knows are valid — never invented. */

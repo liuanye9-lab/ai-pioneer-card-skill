@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { generateFeishuCard, sendFeishuCard, validateFeishuCard, dispatchTool } from "../src/agent/tool-adapter.js";
+import {
+  createCardkitDraft,
+  generateFeishuCard,
+  sendFeishuCard,
+  validateFeishuCard,
+  dispatchTool,
+} from "../src/agent/tool-adapter.js";
 
 describe("Doubao agent tool-adapter", () => {
   it("generate_feishu_card returns a card + summary for a healthy input", () => {
@@ -45,5 +51,43 @@ describe("Doubao agent tool-adapter", () => {
     expect(r.status).toBe("generated");
     const unknown = await dispatchTool("nope", {});
     expect(unknown.error).toBeTruthy();
+  });
+
+  it("requires the host image step instead of silently creating a text-only CardKit draft", async () => {
+    const previousUrl = process.env.IMAGE_API_URL;
+    const previousBase = process.env.IMAGE_PROVIDER_BASE_URL;
+    delete process.env.IMAGE_API_URL;
+    delete process.env.IMAGE_PROVIDER_BASE_URL;
+    try {
+      const r = await createCardkitDraft({
+        copy: "AI先锋大赛正式启动，9月4日开放报名，报名入口 https://example.com/signup",
+        transport: "lark_cli",
+      });
+      expect(r.status).toBe("needs_image");
+      expect(r.image_status?.delegate_prompt).toBeTruthy();
+      expect(r.image_status?.delegate_size).toBeTruthy();
+      expect(r.cardkit?.created).toBe(false);
+    } finally {
+      if (previousUrl) process.env.IMAGE_API_URL = previousUrl;
+      if (previousBase) process.env.IMAGE_PROVIDER_BASE_URL = previousBase;
+    }
+  });
+
+  it("applies explicit verified brand tokens to the generated image prompt", async () => {
+    const r = await createCardkitDraft({
+      copy: "AI先锋大赛正式启动，9月4日开放报名，报名入口 https://example.com/signup",
+      brand: "示例品牌",
+      brand_theme: {
+        identity: "示例品牌官方主题",
+        primaryColor: "#101010",
+        accentColor: "#00A870",
+        surfaceColor: "#FFFFFF",
+        visualDirection: "minimal monochrome editorial",
+      },
+      transport: "lark_cli",
+    });
+    expect(r.status).toBe("needs_image");
+    expect(r.image_status?.delegate_prompt).toContain("#101010");
+    expect(r.image_status?.delegate_prompt).toContain("minimal monochrome editorial");
   });
 });

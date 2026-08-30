@@ -34,6 +34,8 @@
 - 直接与「飞书活动卡片助手」对话并粘贴活动原文。
 - 在对话中显式输入 `/ai-pioneer-feishu-card` 调用命名 Skill。
 
+命名 Skill 只提供指令，不会自动执行本仓库代码。要得到真实图片、`img_key` 和 CardKit `card_id`，必须把工具服务接入豆包的函数调用能力；Prompt-only 模式只能用于预览。
+
 从 GitHub 安装：市场 → 技能 → ＋新建 → 通过 URL 创建，填写：
 
 ```text
@@ -47,7 +49,7 @@ npm run agent:demo           # 工具调用回合演示
 npm run agent:server         # HTTP 工具服务，供豆包平台函数调用转发
 ```
 
-三个工具：`generate_feishu_card`（核心）· `validate_feishu_card` · `send_feishu_card`（需 confirm）。
+五个工具：`create_cardkit_draft`（生产入口）· `update_cardkit_card` · `generate_feishu_card`（预览）· `validate_feishu_card` · `send_feishu_card`（需 confirm）。
 接入方式见 [agent/README.md](./agent/README.md)：填 [system-prompt.md](./agent/system-prompt.md)、注册 [tools.schema.json](./agent/tools.schema.json)、后端用 `dispatchTool()` 承接。
 
 ---
@@ -147,7 +149,7 @@ Parse → Source of Truth → Fact Lock → Normalize(日期/Emoji) → Semantic
 - 内容更适合视觉表达时，优先使用信息图或 Hero 图承载概括；精确事实仍保留为原生文字。
 - URL、报名、提交、规则、日历、会议等行动信息优先转换为按钮；多个真实链接可生成多个跳转按钮。
 
-推荐结构：**少量关键文字 + 信息图 + 明确按钮**。图片生成或上传失败时自动回退为可读文字卡，不输出空白图片或虚假 `img_key`。
+推荐结构：**少量关键文字 + 信息图 + 明确按钮**。仅预览流程在图片失败时回退为可读文字卡；`create_cardkit_draft` 默认严格模式，已规划图片但未成功生成/上传时停止创建，避免低质量草稿冒充成品。
 
 ---
 
@@ -176,6 +178,13 @@ npm run gen -- --copy "..." --send --chat oc_xxxxx
 # 走本机 lark-cli 发送（需已 lark-cli auth login，无需应用凭证）
 npm run gen -- --copy "..." --send-cli --chat oc_xxxxx --confirm
 
+# 一键生图并通过 lark-cli 创建 CardKit 草稿（不发群）
+npm run gen -- --copy "..." --cardkit-draft --transport lark_cli
+
+# delegate 模式拿到宿主生图 URL 后继续
+npm run gen -- --copy "..." --cardkit-draft --transport lark_cli \
+  --image-url "https://example.com/generated.png"
+
 # 上传本地图片并渲染为卡片原生 img 元素（需凭证换取 img_key）
 npm run gen -- --copy "..." --hero-image assets/hero.png
 
@@ -191,9 +200,11 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 
 > Card JSON 2.0 字段依据飞书开放平台官方文档核对（2026-08）。发布前请再次核对最新 Schema 与客户端兼容范围。
 
-### 图片生成（可选，双模式）
+### 一键生图与 CardKit 草稿
 
-`generate_feishu_card` 支持 `with_image` 选项（默认关闭）。开启后走异步 `generateFeishuCardWithImage`：先离线拿到图片规划与风格，再按下列环境变量决定如何产出真实像素，最后上传飞书换取 `img_key` 并渲染为原生 `img` 元素。
+生产入口是 `create_cardkit_draft`：文案 → 事实/注意力排序 → 模板/品牌 → 生图 → 飞书图片上传 → QA → CardKit 实体。成功返回 `card_id`，后续可用 `update_cardkit_card` 更新；同一实体的 `sequence` 必须从 1 开始严格递增。创建实体不等于发群，也不会虚构 CardKit 可视化编辑器链接。按飞书官方约束，卡片实体有效期为 14 天且仅可发送一次。
+
+`generate_feishu_card` 仍用于离线预览；它支持 `with_image` 选项。`create_cardkit_draft` 默认要求已规划的图片真实落地。
 
 | 环境变量 | 作用 |
 |---|---|
@@ -202,10 +213,11 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 | `IMAGE_GEN_DISABLED=1` | 关闭图片生成 |
 
 - **runtime 模式**：配置了任一图片端点变量时，Skill 直接请求该端点得到图片（URL 或二进制）。
-- **delegate 模式**：未配置端点时，不伪造图片，而是返回已拼好的 Prompt + 尺寸，交由宿主的图片生成能力（如豆包工作伙伴自带的图片生成）渲染。
+- **delegate 模式**：未配置端点时，返回 `needs_image`、Prompt 与尺寸；宿主生图后把 HTTPS URL 作为 `generated_image_url` 二次调用同一工具。
 - 生成的图片要变成卡片可用的 `img_key`，仍需飞书凭证上传（`uploadImageBytes` / `uploadImageFromUrl` → `im/v1/images`）。
+- 本机可用 `transport=lark_cli`，通过已登录的飞书 CLI 上传图片并调用 CardKit；服务端推荐 `transport=open_api`。
 
-无端点、被禁用、上传失败等任一环节失败时，都会优雅降级为原生文字承载，绝不伪造 `img_key`。
+仅安装 `SKILL.md` 不会执行这些代码。豆包伙伴必须注册 [agent/tools.schema.json](./agent/tools.schema.json) 并连接可访问的工具服务，否则只能得到 Prompt 级预览，无法达到本地完整链路效果。
 
 ---
 
@@ -216,7 +228,7 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 | `npm run build` | tsc 编译到 `dist/` |
 | `npm run typecheck` | 仅类型检查 |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest（113 用例） |
+| `npm test` | Vitest（116 用例） |
 | `npm run gen -- --copy "..."` | 生成单个卡片 bundle |
 | `npm run examples` | 生成 7 个示例 bundle |
 

@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { compile } from "./core/pipeline.js";
 import { writeBundle } from "./output/bundle-writer.js";
 import { FeishuCardAdapter } from "./feishu/cardkit-client.js";
+import { createCardkitDraft, type CardKitTransport } from "./agent/tool-adapter.js";
 import type { RawInput } from "./core/types.js";
 
 /**
@@ -51,6 +52,9 @@ interface Args {
   confirm?: boolean;
   chat?: string;
   heroImage?: string;
+  imageUrl?: string;
+  cardkitDraft?: boolean;
+  transport?: CardKitTransport;
   json?: boolean;
 }
 
@@ -69,6 +73,9 @@ function parseArgs(argv: string[]): Args {
       case "--send-cli": args.sendCli = true; break;
       case "--confirm": args.confirm = true; break;
       case "--hero-image": args.heroImage = argv[++i]; break;
+      case "--image-url": args.imageUrl = argv[++i]; break;
+      case "--transport": args.transport = argv[++i] as CardKitTransport; break;
+      case "--cardkit-draft": args.cardkitDraft = true; break;
       case "--json": args.json = true; break;
       case "-h":
       case "--help": printHelp(); process.exit(0);
@@ -86,6 +93,7 @@ Usage:
   ai-pioneer-card --copy "..." --hero-image <图片路径>   # 上传并渲染真实图片（需凭证）
   ai-pioneer-card --copy "..." --send --chat <chat_id>   # 需要真实凭证
   ai-pioneer-card --copy "..." --send-cli --chat <chat_id>  # 走本机 lark-cli 发送
+  ai-pioneer-card --copy "..." --cardkit-draft              # 生图并创建 CardKit 草稿
 
 Options:
   --copy        直接传入原始文案
@@ -94,6 +102,9 @@ Options:
   --slug        指定输出目录名
   --outputs     自定义输出根目录（默认 ./outputs）
   --hero-image  本地图片路径：配置凭证时上传换取 img_key 并渲染进卡片
+  --image-url   宿主生图模型返回的 HTTPS 图片地址
+  --cardkit-draft  一键生图、上传并创建 CardKit 实体（不发群）
+  --transport   auto | open_api | lark_cli（CardKit 草稿传输）
   --send        真实发送到飞书（需配置 FEISHU_APP_ID / FEISHU_APP_SECRET）
   --send-cli    通过本机 lark-cli 发送（需已 lark-cli auth login）
   --chat        发送目标 chat_id
@@ -118,6 +129,21 @@ async function main(): Promise<void> {
     console.error("缺少输入：请使用 --copy 或 --file 提供原始文案。\n");
     printHelp();
     process.exit(1);
+  }
+
+  if (args.cardkitDraft) {
+    const draft = await createCardkitDraft({
+      copy,
+      brand: args.brand,
+      slug: args.slug,
+      generated_image_url: args.imageUrl,
+      with_image: true,
+      require_planned_image: true,
+      transport: args.transport ?? "lark_cli",
+      write_bundle: true,
+    });
+    console.log(JSON.stringify(draft, null, 2));
+    process.exit(draft.status === "created" ? 0 : draft.status === "needs_image" ? 2 : 1);
   }
 
   const input: RawInput = {
