@@ -29,6 +29,17 @@
 
 本 Skill 已封装为豆包工作伙伴智能体「飞书活动卡片助手」，Skill 作为其核心工具嵌入。详见 [agent/](./agent)。
 
+在豆包工作伙伴中可通过两种方式使用：
+
+- 直接与「飞书活动卡片助手」对话并粘贴活动原文。
+- 在对话中显式输入 `/ai-pioneer-feishu-card` 调用命名 Skill。
+
+从 GitHub 安装：市场 → 技能 → ＋新建 → 通过 URL 创建，填写：
+
+```text
+https://github.com/liuanye9-lab/ai-pioneer-card-skill
+```
+
 ```bash
 npm run agent:chat           # ★ 直接对话这个 Agent（终端多轮：出卡/追问/越界/确认发送）
 npm run agent:conversation   # 脚本化多轮对话演示
@@ -114,11 +125,29 @@ Parse → Source of Truth → Fact Lock → Normalize(日期/Emoji) → Semantic
 
 原始文案是唯一事实源。禁止 AI 擅自修改：活动名 / 企业名 / 人名 / 日期 / 时间 / 截止 / 地点 / URL / 数字 / 奖项 / 规则 / 提交要求。
 
-允许语义等价标准化：`0809 / 8.9 / 08/09 / 8-9 → 8月9日`，`8.9-8.15 → 8月9日—8月15日`。
+允许在明确日期语境中做语义等价标准化：`0809 / 8.9 / 08/09 / 8-9 → 8月9日`，`8.9-8.15 → 8月9日—8月15日`。
+
+非日期数字必须原样保留：`8.9万元`、`第8.15条`、`会议室0809`、`版本8.9`、`9.9折`、`售价8.9-8.15元` 均不得转换为日期。
 
 - **Emoji 保真**：`📣` 永不变成 `【喇叭】`。
 - **无 URL 不造链接**：没有真实 URL 时，删除按钮而不是编造。
+- **裸链接不进正文**：URL 只由按钮承载，不与奖品、证书或运营文案挤在同一段。
 - **关键事实不只在图片里**：Deadline / 精确日期 / 提交入口 / URL / 高风险规则必须同时在原生文字或 CTA 中承接。
+
+---
+
+## 信息呈现策略
+
+卡片首先解决信息传达，而不是装饰：
+
+- 先识别一个 Primary Anchor；截止、开始、当前节点等关键事实优先展示并高亮。
+- 禁止文字墙：单块正文超过阈值会触发 QA，并进入拆分或降级流程。
+- 奖品、证书、时间、入口等不同语义分开承载，不拼成长段。
+- Emoji 只在日期、提醒、奖项等关键块中适度出现，不强制每段添加。
+- 内容更适合视觉表达时，优先使用信息图或 Hero 图承载概括；精确事实仍保留为原生文字。
+- URL、报名、提交、规则、日历、会议等行动信息优先转换为按钮；多个真实链接可生成多个跳转按钮。
+
+推荐结构：**少量关键文字 + 信息图 + 明确按钮**。图片生成或上传失败时自动回退为可读文字卡，不输出空白图片或虚假 `img_key`。
 
 ---
 
@@ -168,11 +197,11 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 
 | 环境变量 | 作用 |
 |---|---|
-| `IMAGE_API_URL` | 设置后进入 **runtime 模式**：直接调用该文生图端点生成图片 |
-| `IMAGE_API_KEY` | 可选，作为上面端点的 Bearer 鉴权 |
+| `IMAGE_API_URL` / `IMAGE_PROVIDER_BASE_URL` | 设置任一项后进入 **runtime 模式**：直接调用该文生图端点生成图片 |
+| `IMAGE_API_KEY` / `IMAGE_PROVIDER_API_KEY` | 可选，作为上面端点的 Bearer 鉴权 |
 | `IMAGE_GEN_DISABLED=1` | 关闭图片生成 |
 
-- **runtime 模式**：配置了 `IMAGE_API_URL` 时，Skill 直接请求该端点得到图片（URL 或二进制）。
+- **runtime 模式**：配置了任一图片端点变量时，Skill 直接请求该端点得到图片（URL 或二进制）。
 - **delegate 模式**：未配置端点时，不伪造图片，而是返回已拼好的 Prompt + 尺寸，交由宿主的图片生成能力（如豆包工作伙伴自带的图片生成）渲染。
 - 生成的图片要变成卡片可用的 `img_key`，仍需飞书凭证上传（`uploadImageBytes` / `uploadImageFromUrl` → `im/v1/images`）。
 
@@ -187,7 +216,7 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 | `npm run build` | tsc 编译到 `dist/` |
 | `npm run typecheck` | 仅类型检查 |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest（109 用例） |
+| `npm test` | Vitest（113 用例） |
 | `npm run gen -- --copy "..."` | 生成单个卡片 bundle |
 | `npm run examples` | 生成 7 个示例 bundle |
 
