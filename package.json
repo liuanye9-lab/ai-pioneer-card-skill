@@ -1,6 +1,6 @@
 {
   "name": "ai-pioneer-card-skill",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "AI先锋大赛智能飞书卡片 Skill — Mobile-first Feishu Card JSON 2.0 content compiler, design system, Feishu runtime & operation copilot.",
   "type": "module",
   "license": "MIT",
