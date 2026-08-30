@@ -11,7 +11,7 @@ import type {
 import { makeId } from "../core/errors.js";
 import { EMOJI_ANCHORS } from "../core/constants.js";
 import { assembleDedupedBody } from "./body-assembler.js";
-import { normalizeDatesInText } from "../normalize/date-normalizer.js";
+import { normalizeDatesInText, stripInlineUrls } from "../normalize/date-normalizer.js";
 
 /**
  * Information Architect (PRD §9.8, DESIGN §18-22, SKILL §16-20).
@@ -50,11 +50,65 @@ function buildHeader(sot: SourceOfTruth, style: StyleProfile): HeaderBlock {
 
 const STATE_WORDS = ["进行中", "报名中", "已开始", "已结束", "已启动", "已开启", "已就位", "已公布"];
 
+/**
+ * Split a reward sentence into distinct meaning-units so a prize and a
+ * certificate never share one line (anti wall-of-text). Splits on CJK/ASCII
+ * separators but keeps each clause whole.
+ */
+function splitRewardClauses(text: string): string[] {
+  return text
+    .split(/[，,；;、]|\s+且\s+|\s+和\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 1);
+}
+
 function extractStateWord(text: string): string | undefined {
   for (const w of STATE_WORDS) if (text.includes(w)) return w;
   if (/开启|启动/.test(text)) return "已开启";
   if (/公布/.test(text)) return "已公布";
   return undefined;
+}
+
+/**
+ * Build vertical timeline nodes so the card answers 什么时候该干什么/开始/截止:
+ *  - task: matched to each date by source-text proximity (not blind index), so
+ *    later nodes don't degrade to a generic placeholder.
+ *  - status: computed against today (done/current/upcoming), so "现在该干什么"
+ *    is correct instead of always highlighting the first node.
+ *  - deadline node: labeled 截止 so the renderer can emphasize it (bold + color).
+ */
+function buildTimelineNodes(sot: SourceOfTruth): Array<{ date: string; task: string; status: string }> {
+  const now = new Date();
+  const y = now.getFullYear();
+  const toDate = (v: string): Date | null => {
+    const m = v.match(/(\d{1,2})月(\d{1,2})日/);
+    return m ? new Date(y, Number(m[1]) - 1, Number(m[2])) : null;
+  };
+  // Match an action to a date when they came from the same sentence/nearby span.
+  const actionFor = (dateField: (typeof sot.dates)[number]): string | undefined => {
+    const byProximity = sot.actions
+      .map((a) => ({ a, dist: Math.abs((a.start ?? -999) - (dateField.start ?? 999)) }))
+      .filter((x) => x.dist < 40)
+      .sort((p, q) => p.dist - q.dist)[0];
+    if (byProximity) return byProximity.a.action;
+    return sot.deadlines.find((dl) => dl.date === dateField.value)?.action;
+  };
+
+  const dated = sot.dates.map((d) => ({ field: d, when: toDate(d.value) }));
+  // Determine the current node = earliest date that is today or future.
+  const futureIdx = dated.findIndex((x) => x.when && x.when.getTime() >= new Date(y, now.getMonth(), now.getDate()).getTime());
+
+  return dated.map((x, i) => {
+    const isDeadline = sot.deadlines.some((dl) => dl.date === x.field.value);
+    const task = isDeadline ? "截止" : actionFor(x.field) ?? (i === 0 ? "开始" : "赛程节点");
+    let status: string;
+    if (x.when) {
+      status = i === futureIdx ? "current" : x.when.getTime() < new Date(y, now.getMonth(), now.getDate()).getTime() ? "done" : "upcoming";
+    } else {
+      status = i === 0 ? "current" : "upcoming";
+    }
+    return { date: x.field.value, task, status };
+  });
 }
 
 function block(
@@ -113,12 +167,7 @@ export function buildInformationArchitecture(input: IAInput): CardStructure {
         title: attention.primary_anchor,
         subtitle: intent.primary_action,
       });
-      // Build vertical timeline nodes from dates + actions.
-      const nodes = sot.dates.map((d, i) => ({
-        date: d.value,
-        task: sot.actions[i]?.action ?? sot.deadlines.find((dl) => dl.date === d.value)?.action ?? "赛程节点",
-        status: i === 0 ? "current" : "upcoming",
-      }));
+      const nodes = buildTimelineNodes(sot);
       body.push(block("timeline", 2, { nodes }, sot.dates.map((d) => d.id)));
       break;
     }
@@ -207,23 +256,28 @@ export function buildInformationArchitecture(input: IAInput): CardStructure {
 
   // Guarantee rewards survive natively (D1): an intent branch that does not
   // render rewards (e.g. submission) must still carry them — QA hard-fails
-  // otherwise, so emit them here rather than failing the card.
+  // otherwise, so emit them here rather than failing the card. Each reward is
+  // its OWN emoji-prefixed line (never join multiple facts into a wall), and any
+  // inline URL is stripped (it lives on a button, not jammed into body text).
   const rewardTexts = sot.rewards
-    .map((r) => normalizeDatesInText(r.value).text)
-    .filter((v) => !represented.includes(v));
-  const unrewarded = rewardTexts.filter(
+    .flatMap((r) => splitRewardClauses(stripInlineUrls(normalizeDatesInText(r.value).text)))
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0 && !represented.includes(v));
+  // Dedup identical clauses while preserving order.
+  const seenReward = new Set<string>();
+  const uniqueRewards = rewardTexts.filter((v) => (seenReward.has(v) ? false : seenReward.add(v)));
+  const unrewarded = uniqueRewards.filter(
     (v) => !body.some((b) => (b.content?.text ?? "").includes(v)),
   );
-  if (unrewarded.length) {
-    body.push(
-      block(
-        "note",
-        2,
-        { emoji: EMOJI_ANCHORS.reward, text: unrewarded.slice(0, 2).join(" / ") },
-        sot.rewards.map((r) => r.id),
-      ),
-    );
-  }
+  // Reward vs certificate/participation are distinct meanings → separate lines.
+  unrewarded.slice(0, 3).forEach((text, i) => {
+    const emoji = /证书|证明|结业|凭证/.test(text)
+      ? "🎖️"
+      : i === 0
+        ? EMOJI_ANCHORS.reward
+        : "✅";
+    body.push(block("note", 2, { emoji, text }, sot.rewards.map((r) => r.id)));
+  });
 
   // Footer: uncertain info as a soft note (never as fact).
   if (sot.uncertain_information.length > 0) {

@@ -247,10 +247,29 @@ function remediate(input: {
   report: CompileResult["qa"];
 }) {
   const { report } = input;
-  const { structure } = input;
+  let { structure } = input;
   let { ctas, imagePlan, mobileLayout } = input;
 
   const has = (code: string) => report.issues.some((i) => i.code === code);
+
+  // Wall of text => split long body blocks on separators into shorter lines so
+  // no single paragraph reads as a wall (the first-principle: 高效传达 > 美观).
+  if (has("TEXT_WALL")) {
+    const splitBlocks = structure.body.flatMap((b: any) => {
+      const t = b?.content?.text;
+      if (typeof t !== "string" || t.length <= 50) return [b];
+      const parts = t
+        .split(/[，,。；;]/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0);
+      if (parts.length <= 1) return [b];
+      return parts.map((p: string, i: number) => ({
+        ...b,
+        content: { ...b.content, text: p, emoji: i === 0 ? b.content?.emoji : undefined },
+      }));
+    });
+    structure = { ...structure, body: splitBlocks };
+  }
 
   // Image not mobile-readable / critical fact only in image => drop to native.
   if (has("IMAGE_NOT_MOBILE_READABLE") || has("IMAGE_ZOOM_REQUIRED") || has("CRITICAL_FACT_ONLY_IN_IMAGE")) {

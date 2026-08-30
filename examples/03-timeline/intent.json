@@ -9,7 +9,7 @@
     "recommended_interactions": [
       "查看详情"
     ],
-    "confidence": 0.75
+    "confidence": 0.84
   },
   "render_mode": {
     "render_mode": "image_assisted",

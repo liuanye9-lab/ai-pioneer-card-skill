@@ -162,6 +162,22 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 
 > Card JSON 2.0 字段依据飞书开放平台官方文档核对（2026-08）。发布前请再次核对最新 Schema 与客户端兼容范围。
 
+### 图片生成（可选，双模式）
+
+`generate_feishu_card` 支持 `with_image` 选项（默认关闭）。开启后走异步 `generateFeishuCardWithImage`：先离线拿到图片规划与风格，再按下列环境变量决定如何产出真实像素，最后上传飞书换取 `img_key` 并渲染为原生 `img` 元素。
+
+| 环境变量 | 作用 |
+|---|---|
+| `IMAGE_API_URL` | 设置后进入 **runtime 模式**：直接调用该文生图端点生成图片 |
+| `IMAGE_API_KEY` | 可选，作为上面端点的 Bearer 鉴权 |
+| `IMAGE_GEN_DISABLED=1` | 关闭图片生成 |
+
+- **runtime 模式**：配置了 `IMAGE_API_URL` 时，Skill 直接请求该端点得到图片（URL 或二进制）。
+- **delegate 模式**：未配置端点时，不伪造图片，而是返回已拼好的 Prompt + 尺寸，交由宿主的图片生成能力（如豆包工作伙伴自带的图片生成）渲染。
+- 生成的图片要变成卡片可用的 `img_key`，仍需飞书凭证上传（`uploadImageBytes` / `uploadImageFromUrl` → `im/v1/images`）。
+
+无端点、被禁用、上传失败等任一环节失败时，都会优雅降级为原生文字承载，绝不伪造 `img_key`。
+
 ---
 
 ## 脚本
@@ -171,7 +187,7 @@ Feishu Card Adapter 接口（[src/feishu/cardkit-client.ts](./src/feishu/cardkit
 | `npm run build` | tsc 编译到 `dist/` |
 | `npm run typecheck` | 仅类型检查 |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest（99 用例） |
+| `npm test` | Vitest（109 用例） |
 | `npm run gen -- --copy "..."` | 生成单个卡片 bundle |
 | `npm run examples` | 生成 7 个示例 bundle |
 

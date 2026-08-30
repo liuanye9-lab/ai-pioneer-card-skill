@@ -102,5 +102,34 @@ export function runFactQA(input: {
     }
   }
 
+  // 7. Fact corruption guard (D1): a non-date numeric fact (price/quantity/rule
+  //    like 8.9万元 / 第8.15条 / 会议室0809) must NOT be silently rewritten into a
+  //    date. If a locked fact's numeric+unit token vanished AND a X月X日 appeared
+  //    where that unit still trails, the normalizer over-reached — hard fail.
+  const NON_DATE_UNIT = /(\d{1,2}[.\-/]\d{1,2}|\d{3,4})\s*(万|亿|元|块|折|名|号|位|人|个|条|章|款|项|届|期|%|％|页)/g;
+  const factSources = [
+    ...sot.rewards.map((f) => f.value),
+    ...sot.rules.map((f) => f.value),
+    ...sot.locations.map((f) => f.value),
+    ...sot.uncertain_information.map((u) => u.source_text ?? u.note),
+  ];
+  for (const src of factSources) {
+    let m: RegExpExecArray | null;
+    NON_DATE_UNIT.lastIndex = 0;
+    while ((m = NON_DATE_UNIT.exec(src)) !== null) {
+      const numAndUnit = m[0]; // e.g. "8.9万"
+      const unit = m[2]; // e.g. "万"
+      // The original number+unit must still be present verbatim in the card.
+      if (!cardText.includes(numAndUnit) && new RegExp(`\\d{1,2}月\\d{1,2}日\\s*${unit}`).test(cardText)) {
+        issues.push({
+          code: "FACT_CORRUPTED_AS_DATE",
+          severity: "hard_fail",
+          message: `非日期事实被误当日期改写：原文「${numAndUnit}」在卡片中变成了「X月X日${unit}」`,
+          stage: "fact_qa",
+        });
+      }
+    }
+  }
+
   return { name: "fact_qa", pass: issues.every((i) => i.severity !== "hard_fail"), issues };
 }

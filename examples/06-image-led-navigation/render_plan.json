@@ -39,12 +39,6 @@
       "target": "https://example.com/calendar"
     },
     {
-      "label": "查看课程日历",
-      "priority": "secondary",
-      "type": "url",
-      "target": "https://example.com/calendar"
-    },
-    {
       "label": "财务专场",
       "priority": "secondary",
       "type": "callback",

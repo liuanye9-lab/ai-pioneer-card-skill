@@ -19,7 +19,6 @@
 
 ## 按钮
 - [主] 预约直播 → https://example.com/calendar
-- [次] 查看课程日历 → https://example.com/calendar
 - [次] 财务专场 → callback:module_财务专场
 - [次] 销售专场 → callback:module_销售专场
 - [次] 客服专场 → callback:module_客服专场

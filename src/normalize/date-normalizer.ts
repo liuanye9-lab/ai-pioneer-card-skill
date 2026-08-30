@@ -109,36 +109,97 @@ function findRangeSeparator(token: string, sep: string): number {
   }
 }
 
+// Fold full-width digits/colon so 全角 dates in free text normalize too (D6).
+function foldFullWidthDigits(text: string): string {
+  return text
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/\uFF1A/g, ":");
+}
+
+/**
+ * Strip any inline URL (and its 提交地址/链接 lead-in) from body copy — links
+ * belong on buttons, never jammed into card text. Shared by the IA reward path
+ * and the editable-body assembler.
+ */
+export function stripInlineUrls(text: string): string {
+  return text
+    .replace(/(?:提交|报名|活动|课程|详情|大赛|地址|链接|入口|网址)?[:：]?\s*https?:\/\/[^\s，。；、）)]+/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[，、,]\s*$/, "")
+    .trim();
+}
+
+// Words nearby that make an ambiguous numeric token (8.9 / 0809) actually a date.
+const DATE_CONTEXT =
+  /(日期|截止|开营|开赛|开始|开课|报名|提交|活动|大赛|deadline|截至|结束|举办|上线|发布|当天|之前|以前|前|起|到|至)/;
+// Unit suffixes that PROVE a token is NOT a date (price/quantity/ordinal/rule…).
+const NON_DATE_SUFFIX = /^\s*(元|万|亿|块|折|名|号|位|人|个|条|章|款|项|届|期|%|％|分|秒|页|GB|MB|KB|kg|千克|克|米|次)/;
+// Prefixes that PROVE a token is NOT a date (extension/room/price/fee…).
+const NON_DATE_PREFIX = /(分机|房间|会议室|价格|单价|售价|费用|费|编号|编码|工号|订单号|座位|电话|手机|QQ|版本|第|楼|座|室|号楼)\s*$/;
+
+/**
+ * Decide whether a matched numeric token at [idx, idx+len) in `text` should be
+ * treated as a date. CJK forms (8月9日) are always dates; ambiguous numeric
+ * forms (8.9 / 8-9 / 0809) require date context AND no unit prefix/suffix so we
+ * never rewrite `8.9万元`, `会议室0809`, `第8.15条`, `价格8.9元` into dates (D5).
+ */
+function looksLikeDateInContext(
+  text: string,
+  idx: number,
+  match: string,
+  ambiguous: boolean,
+): boolean {
+  if (!ambiguous) return true; // explicit 8月9日 / ranges are unambiguous
+  const before = text.slice(Math.max(0, idx - 6), idx);
+  const after = text.slice(idx + match.length, idx + match.length + 4);
+  if (NON_DATE_PREFIX.test(before)) return false;
+  if (NON_DATE_SUFFIX.test(after)) return false;
+  const around = text.slice(Math.max(0, idx - 8), idx + match.length + 8);
+  return DATE_CONTEXT.test(around);
+}
+
 /**
  * Scan free text and return every date normalization plus the text with
  * dates replaced by their canonical form. Used by copy normalization.
+ *
+ * Ambiguous numeric tokens (bare `8.9`, `0809`) are only converted when a date
+ * context word is nearby and no price/quantity/ordinal unit adjoins them, so
+ * facts like `8.9万元奖金` / `会议室0809` / `第8.15条` are never corrupted.
  */
-export function normalizeDatesInText(text: string): {
+export function normalizeDatesInText(rawText: string): {
   text: string;
   normalizations: DateNormalization[];
 } {
   const normalizations: DateNormalization[] = [];
+  const text = foldFullWidthDigits(rawText);
 
-  // Order matters: match ranges and explicit CJK forms before bare numbers.
-  const patterns: RegExp[] = [
-    // range like 8.9-8.15, 8/9-8/15, 8月9日-8月15日, 8月9日至8月15日
-    new RegExp(
-      `(\\d{1,2}[./-]\\d{1,2}|\\d{1,2}月\\d{1,2}[日号]?)\\s*[—\\-~～至到]\\s*(\\d{1,2}[./-]\\d{1,2}|\\d{1,2}月\\d{1,2}[日号]?)`,
-      "g",
-    ),
-    // CJK single 8月9日 / 8月9
-    /(\d{1,2}月\d{1,2}[日号]?)/g,
-    // numeric 8.9 / 08/09 / 8-9 (require boundary that is not a digit)
-    /(?<![\d.])(\d{1,2}[./-]\d{1,2})(?![\d.])/g,
-    // compact 0809 (4 digits) only when clearly a date context is handled by caller;
-    // here we conservatively convert standalone 4-digit tokens that look like MMDD.
-    /(?<!\d)(\d{4})(?!\d)/g,
+  // pattern, ambiguous? — ambiguous forms get the context/unit gate.
+  const patterns: Array<{ re: RegExp; ambiguous: boolean }> = [
+    // CJK-marked range 8月9日-8月15日 / 8月9日至8月15日 (unambiguous — 月/日 markers)
+    {
+      re: new RegExp(`(\\d{1,2}月\\d{1,2}[日号]?)\\s*[—\\-~～至到]\\s*(\\d{1,2}月\\d{1,2}[日号]?)`, "g"),
+      ambiguous: false,
+    },
+    // purely-numeric range 8.9-8.15 / 8/9-8/15 (AMBIGUOUS — a price/rule range like
+    // 售价8.9-8.15元 or 第8.9-8.15条 must NOT become a date range; needs context + no unit)
+    {
+      re: /(?<![\d.])(\d{1,2}[./-]\d{1,2}\s*[—\-~～至到]\s*\d{1,2}[./-]\d{1,2})(?![\d.])/g,
+      ambiguous: true,
+    },
+    // CJK single 8月9日 / 8月9 (unambiguous — the 月/日 markers make it a date)
+    { re: /(\d{1,2}月\d{1,2}[日号]?)/g, ambiguous: false },
+    // numeric 8.9 / 08/09 / 8-9 (AMBIGUOUS — needs context + no unit)
+    { re: /(?<![\d.])(\d{1,2}[./-]\d{1,2})(?![\d.])/g, ambiguous: true },
+    // compact 0809 (AMBIGUOUS — needs context + no unit)
+    { re: /(?<!\d)(\d{4})(?!\d)/g, ambiguous: true },
   ];
 
   let working = text;
-  for (const pattern of patterns) {
-    working = working.replace(pattern, (match) => {
-      // For compact 4-digit, only treat as date when it parses to a valid MMDD.
+  for (const { re, ambiguous } of patterns) {
+    working = working.replace(re, (match, ...args) => {
+      // args: [...groups, offset, wholeString]; offset is second-to-last.
+      const offset = args[args.length - 2] as number;
+      if (!looksLikeDateInContext(working, offset, match, ambiguous)) return match;
       const norm = normalizeDateToken(match);
       if (norm) {
         normalizations.push(norm);

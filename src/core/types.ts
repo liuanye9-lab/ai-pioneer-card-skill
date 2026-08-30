@@ -345,6 +345,8 @@ export interface StyleProfile {
   gradient: string;
   /** Feishu header template color token (blue/turquoise/wathet/...). */
   feishuHeaderTemplate: string;
+  /** Feishu text_tag color token derived from the palette (optional). */
+  feishuTagColor?: string;
   isBrandResolved: boolean;
   /** Full style.md content string. */
   markdown: string;
@@ -408,6 +410,8 @@ export interface OperationCopy {
   onSend: string;
   afterSend: string;
   deadlineReminder: string;
+  /** Opt-in lively 群气氛 variant for 发卡前 (exclamatory, scene-specific). */
+  beforeSendLively?: string;
 }
 
 // ---------------------------------------------------------------------------

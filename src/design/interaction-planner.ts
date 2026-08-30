@@ -136,6 +136,34 @@ export function planCTAs(input: {
     });
   }
 
+  // Generic pass: turn every remaining REAL link into a jump button (up to the
+  // cap) so multi-resource cards surface all destinations (很多转跳按钮), never
+  // inventing a URL. Label by link type (verb+object).
+  const usedUrls = new Set(ctas.map((c) => c.url).filter(Boolean) as string[]);
+  for (const c of secondary) if (c.url) usedUrls.add(c.url);
+  const LINK_LABELS: Record<string, string> = {
+    submission: "提交作品",
+    registration: "立即报名",
+    doc: "查看规则",
+    calendar: "查看日历",
+    meeting: "进入会议",
+    external: "查看详情",
+  };
+  for (const link of sot.links) {
+    if (secondary.length >= 4) break;
+    if (!link.url || usedUrls.has(link.url)) continue;
+    secondary.push({
+      id: makeId("cta"),
+      label: LINK_LABELS[link.type ?? "external"] ?? "查看详情",
+      type: "url",
+      url: link.url,
+      linkTarget: { universal: link.url },
+      priority: "secondary",
+      sourceFactId: link.id,
+    });
+    usedUrls.add(link.url);
+  }
+
   ctas.push(...secondary.slice(0, 4));
   return dedupeCTAs(ctas);
 }
@@ -148,11 +176,15 @@ function normalizeLabel(label: string): string {
 
 function dedupeCTAs(ctas: CTA[]): CTA[] {
   const seen = new Set<string>();
+  const seenUrls = new Set<string>();
   const out: CTA[] = [];
   let primaryCount = 0;
   for (const cta of ctas) {
     const key = `${cta.label}|${cta.url ?? cta.callbackKey ?? ""}`;
     if (seen.has(key)) continue;
+    // Same destination twice (e.g. training primary + calendar secondary) is UX
+    // redundancy — keep the first (higher-priority) button only.
+    if (cta.url && seenUrls.has(cta.url)) continue;
     if (cta.priority === "primary") {
       if (primaryCount >= 1) {
         // demote extra primaries to secondary
@@ -162,6 +194,7 @@ function dedupeCTAs(ctas: CTA[]): CTA[] {
       }
     }
     seen.add(key);
+    if (cta.url) seenUrls.add(cta.url);
     out.push(cta);
   }
   // Enforce secondary cap of 4.

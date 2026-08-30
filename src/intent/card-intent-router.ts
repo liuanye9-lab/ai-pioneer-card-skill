@@ -86,12 +86,15 @@ export function routeCardIntent(sot: SourceOfTruth, rawCopy: string): CardIntent
     "training",
     count(copy, ["培训", "课程", "直播", "大班课", "专场", "训练营", "公开课", "系列课"]) * 2,
   );
-  // timeline — multiple distinct dates + sequence words
-  add(
-    "timeline",
-    (sot.dates.length >= 2 ? sot.dates.length : 0) +
-      count(copy, ["赛程", "时间线", "阶段", "节点", "流程", "安排"]) * 2,
-  );
+  // timeline — multiple distinct dates + sequence words. 3+ dates with a
+  // schedule word is decisively a timeline (答"什么时候干什么"), so it should
+  // outscore submission/deadline which only see one of those dates.
+  {
+    const scheduleWords = count(copy, ["赛程", "时间线", "阶段", "节点", "流程", "安排", "日程", "议程"]);
+    let tl = (sot.dates.length >= 2 ? sot.dates.length : 0) + scheduleWords * 2;
+    if (sot.dates.length >= 3 && scheduleWords > 0) tl += 6; // decisive multi-node schedule
+    add("timeline", tl);
+  }
   // case_showcase
   add("case_showcase", count(copy, ["案例", "场景", "实战", "拆解", "参考"]) * 2);
   // registration

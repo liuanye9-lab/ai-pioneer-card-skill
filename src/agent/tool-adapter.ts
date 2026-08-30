@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { compile } from "../core/pipeline.js";
 import { writeBundle } from "../output/bundle-writer.js";
 import { FeishuCardAdapter } from "../feishu/cardkit-client.js";
+import { generateImage } from "../design/image-generator.js";
 import type { RawInput, CompileResult } from "../core/types.js";
 
 /**
@@ -43,6 +44,8 @@ export interface GenerateArgs {
   want_send?: boolean;
   confirm_send?: boolean;
   write_bundle?: boolean;
+  /** Try to produce a REAL image (generate → upload → img_key) before render. */
+  with_image?: boolean;
 }
 
 export interface AgentGenerateResult {
@@ -71,12 +74,23 @@ export interface AgentGenerateResult {
   /** Ready-to-send group operation copy (发卡前/时/后 + 截止提醒). */
   operation_copy?: {
     before_send: string;
+    before_send_lively?: string;
     on_send: string;
     after_send: string;
     deadline_reminder: string;
   };
   /** Human-readable mobile reading-order preview lines. */
   preview?: string[];
+  /** Outcome of real image generation (when with_image was requested). */
+  image_status?: {
+    attempted: boolean;
+    mode: string;
+    produced: boolean;
+    /** When mode==="delegate": the finished spec for the host to render. */
+    delegate_prompt?: string;
+    delegate_size?: string;
+    message: string;
+  };
 }
 
 function toSummary(result: CompileResult) {
@@ -94,13 +108,14 @@ function toSummary(result: CompileResult) {
   };
 }
 
-export function generateFeishuCard(args: GenerateArgs): AgentGenerateResult {
+export function generateFeishuCard(args: GenerateArgs, extra?: { heroImageKey?: string; imageStatus?: AgentGenerateResult["image_status"] }): AgentGenerateResult {
   const input: RawInput = {
     copy: args.copy,
     brandName: args.brand,
     slug: args.slug,
     wantSend: args.want_send,
     confirmSend: args.confirm_send,
+    heroImageKey: extra?.heroImageKey,
   };
 
   const result = compile(input, { brandsDir: BRANDS_DIR });
@@ -143,13 +158,67 @@ export function generateFeishuCard(args: GenerateArgs): AgentGenerateResult {
       : undefined,
     operation_copy: {
       before_send: result.operationCopy.beforeSend,
+      before_send_lively: result.operationCopy.beforeSendLively,
       on_send: result.operationCopy.onSend,
       after_send: result.operationCopy.afterSend,
       deadline_reminder: result.operationCopy.deadlineReminder,
     },
     preview: Array.isArray(result.cardPreview?.preview_lines) ? result.cardPreview.preview_lines : undefined,
     output_dir: outputDir,
+    image_status: extra?.imageStatus,
   };
+}
+
+/**
+ * Async variant that attempts REAL image generation before rendering.
+ *
+ * Flow: compile once (offline) to get the style + image plan → generate an
+ * image (runtime endpoint or delegate) → upload to Feishu for an img_key →
+ * recompile with `heroImageKey` so the card renders a real image. On any
+ * failure it falls back to the text-only card (never blocks), and always
+ * reports what happened via `image_status`.
+ */
+export async function generateFeishuCardWithImage(args: GenerateArgs): Promise<AgentGenerateResult> {
+  // First pass (offline) to get the plan + style; also handles preflight/blocked.
+  const first = compile(
+    { copy: args.copy, brandName: args.brand, slug: args.slug, wantSend: args.want_send, confirmSend: args.confirm_send },
+    { brandsDir: BRANDS_DIR },
+  );
+  if (!first.preflight.proceed || !first.imagePlan) {
+    // Blocked, or no image role → plain path (also covers out_of_scope/clarify).
+    return generateFeishuCard(args);
+  }
+
+  const gen = await generateImage(first.imagePlan, first.style, { env: process.env });
+  const imageStatus: AgentGenerateResult["image_status"] = {
+    attempted: true,
+    mode: gen.mode,
+    produced: false,
+    message: gen.message,
+  };
+
+  if (!gen.ok) {
+    // Delegate mode surfaces the spec so the host can render it; still text card.
+    if (gen.mode === "delegate") {
+      imageStatus.delegate_prompt = gen.prompt;
+      imageStatus.delegate_size = gen.size;
+    }
+    return generateFeishuCard(args, { imageStatus });
+  }
+
+  // Upload the produced image → img_key (needs Feishu credentials).
+  const adapter = new FeishuCardAdapter();
+  const up = gen.url
+    ? await adapter.uploadImageFromUrl(gen.url)
+    : await adapter.uploadImageBytes(gen.bytes ?? new Uint8Array(), "hero.png");
+  if (!up.ok || !up.imageKey) {
+    imageStatus.message = `图片已生成，但上传飞书失败（${up.message}），已回退为文字卡。`;
+    return generateFeishuCard(args, { imageStatus });
+  }
+
+  imageStatus.produced = true;
+  imageStatus.message = "已生成并嵌入真实图片。";
+  return generateFeishuCard(args, { heroImageKey: up.imageKey, imageStatus });
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +265,7 @@ export async function sendFeishuCard(args: SendArgs): Promise<{ ok: boolean; sta
 export async function dispatchTool(name: string, args: any): Promise<any> {
   switch (name) {
     case "generate_feishu_card":
-      return generateFeishuCard(args);
+      return args?.with_image ? generateFeishuCardWithImage(args) : generateFeishuCard(args);
     case "validate_feishu_card":
       return validateFeishuCard(args);
     case "send_feishu_card":

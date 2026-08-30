@@ -28,7 +28,7 @@
     "elements": [
       {
         "tag": "markdown",
-        "content": "⏰ **9月4日 截止**",
+        "content": "⏰ <font color=\"red\">**9月4日 截止**</font>",
         "text_align": "left"
       },
       {

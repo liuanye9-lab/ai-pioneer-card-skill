@@ -37,19 +37,55 @@ export function runInformationQA(input: {
     }
   }
 
-  // No wall of text: any single block > 4 lines is a violation.
+  // No wall of text. Extract renderable text from EVERY block shape (not just
+  // b.content.text): anchor title+subtitle, note/text, and timeline nodes. A
+  // single un-broken block that is very long is a hard_fail (drives the rewrite
+  // loop); a moderately long one is an error (score deduction + remediation).
+  const HARD_WALL = 90; // chars in one block with no line breaks → must split
+  const SOFT_WALL = 50; // chars → should split
   for (const b of structure.body) {
-    const text: string = b.content?.text ?? "";
-    const lineCount = text.split(/\n/).length + Math.ceil(text.length / 24);
-    if (lineCount > 5) {
+    const c = b.content ?? {};
+    const pieces: string[] = [];
+    if (typeof c.text === "string") pieces.push(c.text);
+    if (typeof c.title === "string") pieces.push(c.title);
+    if (typeof c.subtitle === "string") pieces.push(c.subtitle);
+    if (Array.isArray(c.nodes)) {
+      for (const n of c.nodes) pieces.push(`${n?.date ?? ""}${n?.task ?? ""}`);
+    }
+    // Evaluate the longest single unbroken run (split on existing separators).
+    const longestRun = pieces
+      .flatMap((p) => p.split(/\n|。|；|;/))
+      .map((s) => s.trim().length)
+      .reduce((a, b2) => Math.max(a, b2), 0);
+    if (longestRun > HARD_WALL) {
       issues.push({
         code: "TEXT_WALL",
-        severity: "error",
-        message: "存在文字墙（单模块过长），应拆分/折叠/转按钮",
+        severity: "hard_fail",
+        message: `存在文字墙（单段 ${longestRun} 字未拆分），必须拆分/折叠/转按钮`,
         stage: "information_qa",
       });
       break;
     }
+    if (longestRun > SOFT_WALL) {
+      issues.push({
+        code: "TEXT_WALL",
+        severity: "error",
+        message: `单模块偏长（${longestRun} 字），建议拆分为多段或转按钮`,
+        stage: "information_qa",
+      });
+      break;
+    }
+  }
+
+  // No raw URL jammed into body text (links belong on buttons). This must never
+  // ship, so it's a hard_fail — the body-assembler & IA strip URLs upstream.
+  if (/https?:\/\//i.test(cardText)) {
+    issues.push({
+      code: "INLINE_URL_IN_BODY",
+      severity: "hard_fail",
+      message: "正文出现裸链接，应改为按钮承载",
+      stage: "information_qa",
+    });
   }
 
   // Clear CTA: at least an action is expressed (button OR body action text).

@@ -2,7 +2,7 @@ import type { AttentionPlan, ContentBlock, SourceOfTruth } from "../core/types.j
 import { makeId } from "../core/errors.js";
 import { dedup, type DedupCandidate } from "../dedup/semantic-deduper.js";
 import { EMOJI_ANCHORS } from "../core/constants.js";
-import { normalizeDatesInText } from "../normalize/date-normalizer.js";
+import { normalizeDatesInText, stripInlineUrls } from "../normalize/date-normalizer.js";
 import { containsEmoji } from "../normalize/emoji-preserver.js";
 
 /**
@@ -42,8 +42,10 @@ export function assembleDedupedBody(
   const blocks: ContentBlock[] = [];
   for (const k of kept) {
     if (k.id === "anchor") continue;
-    // Normalize any dates in editable copy so raw forms (8.20) never leak.
-    const { text } = normalizeDatesInText(k.text);
+    // Normalize dates AND strip any inline URL (links live on buttons, never in
+    // body text) so an editable sentence like "记得提交 https://…" doesn't leak.
+    const text = stripInlineUrls(normalizeDatesInText(k.text).text);
+    if (!text) continue; // sentence was only a URL → nothing left to show
     // Only add a scanning-anchor emoji when the line has none of its own,
     // so we never double up (e.g. "📣 📣 ...").
     const emoji = containsEmoji(text) ? undefined : EMOJI_ANCHORS.announcement;

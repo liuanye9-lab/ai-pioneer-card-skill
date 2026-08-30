@@ -30,9 +30,47 @@ const STOPWORDS = new Set([
   "前", "后", "内", "中", "时", "时间",
 ]);
 
+// Synonyms that mean the same thing → fold to one canonical token so reworded
+// paraphrases (第一名/冠军, 一万/10000) are detected as duplicates.
+const SYNONYMS: Array<[RegExp, string]> = [
+  [/第一名|冠军|头名|状元/g, "冠军"],
+  [/第二名|亚军/g, "亚军"],
+  [/第三名|季军/g, "季军"],
+  [/报名|注册|登记/g, "报名"],
+  [/提交|上交|递交|上传/g, "提交"],
+  [/截止|结束|终止|停止/g, "截止"],
+  [/地点|地址|位置|场地/g, "地点"],
+  [/奖金|奖励|奖品/g, "奖"],
+];
+
+/** Fold Chinese numerals + digit groups to a canonical number so 一万≈10000. */
+function normalizeNumbers(text: string): string {
+  const CN: Record<string, number> = { 零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+  return text
+    // 一万 / 十万 / 两万 → <n>0000 ; 千 → 000
+    .replace(/([一二两三四五六七八九十百千]+)万/g, (_, g) => `${cnToNum(g, CN)}0000`)
+    .replace(/([一二两三四五六七八九十百]+)千/g, (_, g) => `${cnToNum(g, CN)}000`)
+    .replace(/(\d+)万/g, (_, g) => `${g}0000`)
+    .replace(/(\d+)千/g, (_, g) => `${g}000`);
+}
+
+function cnToNum(s: string, CN: Record<string, number>): number {
+  // Handle simple forms: 十=10, 两=2, 一=1, 十五=15, 三=3…
+  if (s === "十") return 10;
+  if (s.length === 1) return CN[s] ?? 1;
+  if (s[0] === "十") return 10 + (CN[s[1]] ?? 0);
+  if (s.includes("十")) {
+    const [a, b] = s.split("十");
+    return (CN[a] ?? 1) * 10 + (b ? CN[b] ?? 0 : 0);
+  }
+  return CN[s[0]] ?? 1;
+}
+
 function normalizeForCompare(text: string): string {
   const { text: dateNorm } = normalizeDatesInText(text);
-  return dateNorm
+  let out = normalizeNumbers(dateNorm);
+  for (const [re, canon] of SYNONYMS) out = out.replace(re, canon);
+  return out
     .replace(/[\s，。、！？；：,.!?;:「」『』"'()（）[\]【】]/g, "")
     .toLowerCase();
 }
@@ -72,10 +110,19 @@ function datesIn(text: string): Set<string> {
 
 const ACTION_VERBS = ["提交", "上交", "递交", "停止提交", "报名", "注册", "预约", "参加"];
 
+/** Canonical numbers present in a line (after 一万→10000 folding). */
+function numbersIn(text: string): Set<string> {
+  return new Set((normalizeNumbers(text).match(/\d{2,}/g) ?? []));
+}
+const REWARD_TOKENS = ["冠军", "亚军", "季军", "奖", "名额", "证书"];
+const PLACE_TOKENS = ["会议室", "地点", "线上", "线下", "会场", "楼", "室"];
+
 /**
  * Effective similarity used for dedup: base Jaccard, boosted when two lines
  * share an identical normalized date AND an overlapping action verb (the
  * classic "same deadline, reworded" case). Distinct dates are never boosted.
+ * Also boosts when two lines share a canonical number + reward token (10000元
+ * 奖金 ≈ 一万元第一名) or the same location, catching non-date paraphrases.
  */
 function effectiveSimilarity(a: string, b: string): number {
   let sim = semanticSimilarity(a, b);
@@ -88,6 +135,15 @@ function effectiveSimilarity(a: string, b: string): number {
     if (aVerb && bVerb) sim = Math.max(sim, 0.85);
     else sim += 0.15; // same date, generic phrasing
   }
+  // Same canonical number + both about a reward → same reward fact, reworded.
+  const na = numbersIn(a);
+  const nb = numbersIn(b);
+  const sharedNum = [...na].some((n) => nb.has(n));
+  const bothReward = REWARD_TOKENS.some((t) => a.includes(t)) && REWARD_TOKENS.some((t) => b.includes(t));
+  if (sharedNum && bothReward) sim = Math.max(sim, 0.85);
+  // Same location keyword + shared number (room/floor) → same location fact.
+  const bothPlace = PLACE_TOKENS.some((t) => a.includes(t)) && PLACE_TOKENS.some((t) => b.includes(t));
+  if (bothPlace && sharedNum) sim = Math.max(sim, 0.8);
   return Math.min(1, sim);
 }
 

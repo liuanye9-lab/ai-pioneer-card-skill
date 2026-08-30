@@ -180,6 +180,14 @@ export class FeishuCardAdapter {
     } catch {
       return { ok: false, status: "Generated", message: `image file not readable: ${filePath}` };
     }
+    return this.uploadImageBytes(new Uint8Array(bytes), basename(filePath));
+  }
+
+  /**
+   * Upload in-memory image bytes (e.g. from the image generator) → img_key.
+   * Same im/v1/images endpoint; keeps the credential/degradation contract.
+   */
+  async uploadImageBytes(bytes: Uint8Array, name = "generated.png"): Promise<UploadImageResult> {
     if (!this.auth.configured || !this.auth.credentials) {
       return { ok: false, status: "Generated", message: this.auth.reason ?? "credentials not configured" };
     }
@@ -187,7 +195,7 @@ export class FeishuCardAdapter {
       const token = await getTenantAccessToken(this.auth.credentials);
       const form = new FormData();
       form.append("image_type", "message");
-      form.append("image", new Blob([new Uint8Array(bytes)], { type: "application/octet-stream" }), basename(filePath));
+      form.append("image", new Blob([bytes], { type: "application/octet-stream" }), name);
       const res = await fetch(`${this.auth.credentials.baseUrl}/open-apis/im/v1/images`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -200,6 +208,20 @@ export class FeishuCardAdapter {
       return { ok: true, status: "Tested", imageKey: data.data.image_key, message: "image uploaded" };
     } catch (e) {
       return { ok: false, status: "Configured", message: `network/API error: ${(e as Error).message}` };
+    }
+  }
+
+  /**
+   * Fetch a remote image URL (from the generator) and upload it → img_key.
+   */
+  async uploadImageFromUrl(imageUrl: string): Promise<UploadImageResult> {
+    try {
+      const res = await fetch(imageUrl);
+      if (!res.ok) return { ok: false, status: "Generated", message: `image url HTTP ${res.status}` };
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      return this.uploadImageBytes(bytes, "generated.png");
+    } catch (e) {
+      return { ok: false, status: "Generated", message: `image url fetch error: ${(e as Error).message}` };
     }
   }
 }

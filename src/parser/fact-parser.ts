@@ -94,8 +94,12 @@ function extractDates(copy: string): FactField[] {
   const DATE_CONTEXT = /(日期|截止|开营|开赛|开始|开课|报名|提交|活动|大赛|deadline|截至|结束|举办|上线|发布)/;
   const compact = /(?<!\d)(\d{4})(?!\d)/g;
   let cm: RegExpExecArray | null;
+  const NON_DATE_PREFIX = /(分机|房间|会议室|价格|单价|售价|费用|费|编号|编码|工号|订单号|电话|手机|QQ|版本|楼|座|室|号楼)\s*$/;
   while ((cm = compact.exec(copy)) !== null) {
     const idx = cm.index;
+    const before = copy.slice(Math.max(0, idx - 4), idx);
+    // Immediate room/extension/order prefix proves it's NOT a date (会议室0809).
+    if (NON_DATE_PREFIX.test(before)) continue;
     const around = copy.slice(Math.max(0, idx - 8), Math.min(copy.length, idx + cm[1].length + 8));
     if (DATE_CONTEXT.test(around)) {
       const norm = normalizeDateToken(cm[1]);
@@ -120,6 +124,15 @@ function extractDates(copy: string): FactField[] {
     pattern.lastIndex = 0;
     while ((match = pattern.exec(copy)) !== null) {
       const raw = match[1];
+      // Skip numeric tokens/ranges that adjoin a non-date unit/prefix (第8.15条 /
+      // 8.9万 / 售价8.9-8.15元 / 会议室0301). CJK-marked forms (8月9日) are exempt.
+      const isAmbiguous = !/[月日号]/.test(raw) && /\d[./-]\d/.test(raw);
+      if (isAmbiguous) {
+        const after = copy.slice(match.index + raw.length, match.index + raw.length + 2);
+        const before = copy.slice(Math.max(0, match.index - 4), match.index);
+        if (/^(万|亿|元|块|折|名|号|位|人|个|条|章|款|项|届|期|%|％|页)/.test(after)) continue;
+        if (/(第|价格|单价|售价|费|编号|编码|工号|订单号|楼|座|室|版本|分机|房间|会议室|电话|手机)$/.test(before)) continue;
+      }
       const norm = normalizeDateToken(raw);
       if (!norm) continue;
       if (seen.has(norm.normalized)) continue;
@@ -223,10 +236,32 @@ function extractDeadlines(
     const { normalizations } = normalizeDatesInText(sentence);
     // Only use a date parsed from THIS sentence — never borrow a global date,
     // otherwise an unrelated 开营日 gets faked as the deadline (D3).
-    const date = normalizations[0]?.normalized;
-    if (!date) {
+    if (!normalizations.length) {
       uncertain.push(`存在截止类表述但该句未给出明确日期：「${sentence}」，未推断截止日。`);
       continue;
+    }
+    // A sentence can carry MANY dates (a whole schedule). Pair 截止/deadline with
+    // the date physically NEAREST the deadline keyword, not blindly the first —
+    // "8月20日报名，…，9月4日截止" must yield 9月4日, not 8月20日.
+    const folded = foldFullWidth(sentence);
+    const kw = DEADLINE_HINTS.map((h) => folded.indexOf(h)).filter((i) => i >= 0).sort((a, b) => a - b)[0] ?? 0;
+    let date = normalizations[0].normalized;
+    if (normalizations.length > 1) {
+      let best = Infinity;
+      for (const n of normalizations) {
+        // locate this date's source token position in the folded sentence
+        const pos = folded.indexOf(n.source);
+        const anchor = pos >= 0 ? pos : folded.indexOf(n.normalized);
+        if (anchor < 0) continue;
+        // Deadlines read "<date>截止" — the date PRECEDES the keyword. Bias to a
+        // date just before the keyword; penalize dates after it.
+        const raw = Math.abs(anchor - kw);
+        const dist = anchor <= kw ? raw : raw + 100;
+        if (dist < best) {
+          best = dist;
+          date = n.normalized;
+        }
+      }
     }
     const action = SUBMIT_HINTS.some((h) => sentence.includes(h)) ? "作品提交" : undefined;
     const key = `${date}|${action ?? ""}`;
@@ -280,7 +315,19 @@ function extractByHints(sentences: string[], hints: string[], locked: boolean): 
     if (!hints.some((h) => sentence.includes(h))) continue;
     if (seen.has(sentence)) continue;
     seen.add(sentence);
-    fields.push({ id: makeId("fact"), value: sentence, source_text: sentence, locked });
+    // A fact sentence can accidentally swallow a URL + its lead-in (提交地址 https://…)
+    // because URLs contain no sentence separator. The URL is captured as a link
+    // elsewhere, so strip the "地址/链接/入口 https://…" fragment from the fact
+    // VALUE (keep source_text verbatim for traceability). The hint must still
+    // hold on the cleaned value, else the sentence was only about the link.
+    const cleaned = sentence
+      .replace(/(?:提交|报名|活动|课程|详情|大赛)?(?:地址|链接|入口|网址|url)[:：]?\s*https?:\/\/\S+/gi, "")
+      .replace(/https?:\/\/\S+/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim()
+      .replace(/^[，,、。\s]+|[，,、。\s]+$/g, "");
+    const value = cleaned.length > 1 && hints.some((h) => cleaned.includes(h)) ? cleaned : sentence;
+    fields.push({ id: makeId("fact"), value, source_text: sentence, locked });
   }
   return fields;
 }

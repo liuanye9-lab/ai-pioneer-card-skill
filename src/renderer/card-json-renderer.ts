@@ -34,6 +34,7 @@ export interface RenderInput {
   mobileLayout: MobileLayoutPlan;
   imagePlan?: ImagePlan;
   imgKey?: string; // provided only after a real upload
+  headerIconKey?: string; // uploaded logo img_key → header icon
 }
 
 const HEADER_ICON_TEMPLATE = "blue";
@@ -83,7 +84,13 @@ function renderContentBlock(block: ContentBlock): any[] {
     case "text": {
       if (c.role === "primary_anchor") {
         const emoji = c.emoji ? `${c.emoji} ` : "";
-        els.push(markdownEl(`${emoji}**${c.title ?? ""}**`));
+        // Amplify the first-visual: deadlines/dates get color highlight + bold
+        // (attention mechanism: 重点信息加粗放大高亮 > 美观), not just bold.
+        const title = c.title ?? "";
+        const highlighted = /截止|deadline|结束/i.test(title)
+          ? `<font color="red">**${title}**</font>`
+          : `**${title}**`;
+        els.push(markdownEl(`${emoji}${highlighted}`));
         if (c.subtitle) els.push(markdownEl(c.subtitle));
       } else {
         const emoji = c.emoji ? `${c.emoji} ` : "";
@@ -101,6 +108,9 @@ function renderContentBlock(block: ContentBlock): any[] {
       const nodes: Array<{ date: string; task: string; status: string }> = c.nodes ?? [];
       const lines = nodes.map((n) => {
         const marker = n.status === "current" ? "●" : n.status === "done" ? "✓" : "○";
+        // Deadline node gets bold + red highlight so "什么时候截止" pops.
+        const isDeadline = /截止|deadline|结束/i.test(n.task);
+        if (isDeadline) return `${marker} <font color="red">**${n.date}**</font> · ${n.task}`;
         const weight = n.status === "current" ? "**" : "";
         return `${marker} ${weight}${n.date}${weight} · ${n.task}`;
       });
@@ -146,7 +156,7 @@ function renderSecondaryCTAs(ctas: CTA[], mobile: MobileLayoutPlan): any[] {
 }
 
 export function renderCardJson(input: RenderInput): any {
-  const { structure, ctas, style, mobileLayout, imagePlan, imgKey } = input;
+  const { structure, ctas, style, mobileLayout, imagePlan, imgKey, headerIconKey } = input;
   const elements: any[] = [];
 
   // Primary anchor
@@ -213,7 +223,7 @@ export function renderCardJson(input: RenderInput): any {
     elements.push(...renderContentBlock(f));
   }
 
-  const header = {
+  const header: any = {
     title: textEl(structure.header.activityName, "plain_text"),
     subtitle: structure.header.subtitle ? textEl(structure.header.subtitle, "plain_text") : undefined,
     template: style.feishuHeaderTemplate || HEADER_ICON_TEMPLATE,
@@ -222,11 +232,18 @@ export function renderCardJson(input: RenderInput): any {
           {
             tag: "text_tag",
             text: textEl(structure.header.badge, "plain_text"),
-            color: "carmine",
+            color: style.feishuTagColor || "carmine",
           },
         ]
       : undefined,
   };
+  // Header logo: a real uploaded logo (img_key) renders as a header icon; a
+  // brand slug alone can't (Card 2.0 icon needs an img_key), so it's omitted
+  // rather than faked. The premium gradient "wallpaper" look is achieved via a
+  // generated hero img in the body, since headers only support preset colors.
+  if (headerIconKey) {
+    header.icon = { tag: "custom_icon", img_key: headerIconKey };
+  }
 
   return {
     schema: "2.0",
